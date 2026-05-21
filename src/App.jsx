@@ -50,15 +50,18 @@ const TRAMOS = [
 const SOCIO_STYLES = {
   socio1: {
     chip: "bg-cyan-100 text-cyan-800 border-cyan-200",
-    shift: "from-cyan-50 to-blue-50 border-cyan-100",
+    shift: "bg-gradient-to-r from-cyan-50 to-blue-50 border-cyan-100",
     bar: "from-cyan-400 to-blue-500",
   },
   socio2: {
     chip: "bg-emerald-100 text-emerald-800 border-emerald-200",
-    shift: "from-emerald-50 to-teal-50 border-emerald-100",
+    shift: "bg-gradient-to-r from-emerald-50 to-teal-50 border-emerald-100",
     bar: "from-emerald-400 to-teal-500",
   },
 };
+
+const MIN_HOURS_BASE = 8;
+const APP_NAME = "El Fauno Blanco";
 
 function todayISO() {
   return new Date().toISOString().slice(0, 10);
@@ -277,7 +280,7 @@ export default function App() {
             </div>
             <div>
               <h1 className="text-3xl font-black tracking-tight text-slate-900">
-                El Fauno Blanco
+                {APP_NAME}
               </h1>
               <p className="text-slate-600 font-medium">Turnos y tareas</p>
             </div>
@@ -320,7 +323,10 @@ export default function App() {
     );
   }
 
-  const maxHours = Math.max(8, stats.socio1, stats.socio2);
+  const maxHours = Math.max(
+    MIN_HOURS_BASE,
+    ...SOCIOS.map((s) => stats[s.id] || 0)
+  );
 
   return (
     <div className="min-h-screen app-bg text-slate-900 pb-24">
@@ -328,7 +334,7 @@ export default function App() {
         <div className="max-w-6xl mx-auto flex items-center justify-between gap-3 text-white">
           <div>
             <h1 className="text-xl md:text-2xl font-black tracking-tight">
-              El Fauno Blanco
+              {APP_NAME}
             </h1>
             <p className="text-sm text-cyan-100">
               {activeUser.nombre} · planificación flexible
@@ -337,7 +343,7 @@ export default function App() {
           <button
             onClick={() => setActiveUser(null)}
             className="bg-white/20 hover:bg-white/30 p-3 rounded-2xl transition"
-            title="Cerrar sesión"
+            aria-label="Cerrar sesión"
           >
             <LogOut size={20} />
           </button>
@@ -413,7 +419,13 @@ export default function App() {
                     "h-full bg-gradient-to-r",
                     SOCIO_STYLES[s.id].bar
                   )}
-                  style={{ width: `${Math.min(100, (stats[s.id] / maxHours) * 100)}%` }}
+                  style={{
+                    width: `${
+                      maxHours > 0
+                        ? Math.min(100, (stats[s.id] / maxHours) * 100)
+                        : 0
+                    }%`,
+                  }}
                 />
               </div>
             </div>
@@ -518,7 +530,7 @@ export default function App() {
                 <div
                   key={s.id}
                   className={cls(
-                    "flex items-center justify-between rounded-2xl p-3 border bg-gradient-to-r shadow-sm",
+                    "flex items-center justify-between rounded-2xl p-3 border shadow-sm",
                     SOCIO_STYLES[s.socio]?.shift
                   )}
                 >
