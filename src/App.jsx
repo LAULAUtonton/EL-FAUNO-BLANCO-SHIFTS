@@ -29,6 +29,40 @@ const TAREAS_BASE = [
   "Cerrar caja",
 ];
 
+const TRAMOS = [
+  {
+    id: "manana",
+    label: "Mañana",
+    active: "bg-amber-200 text-amber-900 border-amber-300 shadow-sm",
+  },
+  {
+    id: "tarde",
+    label: "Tarde",
+    active: "bg-orange-200 text-orange-900 border-orange-300 shadow-sm",
+  },
+  {
+    id: "todo",
+    label: "Todo",
+    active: "bg-cyan-200 text-cyan-900 border-cyan-300 shadow-sm",
+  },
+];
+
+const SOCIO_STYLES = {
+  socio1: {
+    chip: "bg-cyan-100 text-cyan-800 border-cyan-200",
+    shift: "bg-gradient-to-r from-cyan-50 to-blue-50 border-cyan-100",
+    bar: "from-cyan-400 to-blue-500",
+  },
+  socio2: {
+    chip: "bg-emerald-100 text-emerald-800 border-emerald-200",
+    shift: "bg-gradient-to-r from-emerald-50 to-teal-50 border-emerald-100",
+    bar: "from-emerald-400 to-teal-500",
+  },
+};
+
+const MIN_HOURS_BASE = 8;
+const APP_NAME = "El Fauno Blanco";
+
 function todayISO() {
   return new Date().toISOString().slice(0, 10);
 }
@@ -238,21 +272,23 @@ export default function App() {
 
   if (!activeUser) {
     return (
-      <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center p-4">
-        <div className="w-full max-w-md bg-white/10 rounded-3xl p-6 shadow-2xl border border-white/10">
+      <div className="min-h-screen login-bg text-white flex items-center justify-center p-4">
+        <div className="w-full max-w-md login-card rounded-3xl p-6 shadow-2xl border border-white/40">
           <div className="flex items-center gap-3 mb-6">
-            <div className="bg-emerald-400 text-slate-950 rounded-2xl p-3">
+            <div className="bg-gradient-to-br from-cyan-300 to-emerald-300 text-slate-900 rounded-2xl p-3 shadow-lg">
               <Lock />
             </div>
             <div>
-              <h1 className="text-2xl font-bold">El Fauno Blanco</h1>
-              <p className="text-slate-300">Turnos y tareas</p>
+              <h1 className="text-3xl font-black tracking-tight text-slate-900">
+                {APP_NAME}
+              </h1>
+              <p className="text-slate-600 font-medium">Turnos y tareas</p>
             </div>
           </div>
 
-          <label className="text-sm text-slate-300">Usuario</label>
+          <label className="text-sm text-slate-600 font-semibold">Usuario</label>
           <select
-            className="w-full mt-1 mb-4 p-3 rounded-xl bg-slate-900 border border-white/10"
+            className="w-full mt-1 mb-4 p-3 rounded-xl bg-white border border-cyan-100 text-slate-800 focus-ring"
             value={loginUser}
             onChange={(e) => setLoginUser(e.target.value)}
           >
@@ -263,9 +299,9 @@ export default function App() {
             ))}
           </select>
 
-          <label className="text-sm text-slate-300">Contraseña</label>
+          <label className="text-sm text-slate-600 font-semibold">Contraseña</label>
           <input
-            className="w-full mt-1 mb-4 p-3 rounded-xl bg-slate-900 border border-white/10"
+            className="w-full mt-1 mb-4 p-3 rounded-xl bg-white border border-cyan-100 text-slate-800 placeholder-slate-400 focus-ring"
             type="password"
             value={pin}
             onChange={(e) => setPin(e.target.value)}
@@ -274,12 +310,12 @@ export default function App() {
 
           <button
             onClick={login}
-            className="w-full bg-emerald-400 text-slate-950 font-bold py-3 rounded-xl"
+            className="w-full bg-gradient-to-r from-cyan-500 via-sky-500 to-emerald-500 text-white font-black py-3 rounded-xl btn-lift"
           >
             Entrar
           </button>
 
-          <p className="text-xs text-slate-400 mt-4">
+          <p className="text-xs text-slate-500 mt-4 font-medium">
             Demo: Socio 1 = 1234 · Socio 2 = 5678
           </p>
         </div>
@@ -287,19 +323,27 @@ export default function App() {
     );
   }
 
+  const maxHours = Math.max(
+    MIN_HOURS_BASE,
+    ...SOCIOS.map((s) => stats[s.id] || 0)
+  );
+
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-900 pb-24">
-      <header className="sticky top-0 z-20 bg-slate-950 text-white p-4 shadow-xl">
-        <div className="max-w-6xl mx-auto flex items-center justify-between gap-3">
+    <div className="min-h-screen app-bg text-slate-900 pb-24">
+      <header className="sticky top-0 z-20 app-header p-4 shadow-xl">
+        <div className="max-w-6xl mx-auto flex items-center justify-between gap-3 text-white">
           <div>
-            <h1 className="text-xl font-black">El Fauno Blanco</h1>
-            <p className="text-sm text-slate-300">
+            <h1 className="text-xl md:text-2xl font-black tracking-tight">
+              {APP_NAME}
+            </h1>
+            <p className="text-sm text-cyan-100">
               {activeUser.nombre} · planificación flexible
             </p>
           </div>
           <button
             onClick={() => setActiveUser(null)}
-            className="bg-white/10 p-3 rounded-2xl"
+            className="bg-white/20 hover:bg-white/30 p-3 rounded-2xl transition"
+            aria-label="Cerrar sesión"
           >
             <LogOut size={20} />
           </button>
@@ -307,21 +351,21 @@ export default function App() {
       </header>
 
       <main className="max-w-6xl mx-auto p-4 grid lg:grid-cols-3 gap-4">
-        <section className="lg:col-span-2 bg-white rounded-3xl p-4 shadow-sm">
+        <section className="lg:col-span-2 app-card rounded-3xl p-4">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-black flex items-center gap-2">
+            <h2 className="font-black flex items-center gap-2 text-lg">
               <CalendarDays /> Calendario semanal
             </h2>
             <div className="flex gap-2">
               <button
                 onClick={() => setWeekStart(addDays(weekDates[0], -7))}
-                className="px-3 py-2 bg-slate-100 rounded-xl"
+                className="px-3 py-2 bg-cyan-50 hover:bg-cyan-100 text-cyan-700 rounded-xl transition"
               >
                 ←
               </button>
               <button
                 onClick={() => setWeekStart(addDays(weekDates[0], 7))}
-                className="px-3 py-2 bg-slate-100 rounded-xl"
+                className="px-3 py-2 bg-cyan-50 hover:bg-cyan-100 text-cyan-700 rounded-xl transition"
               >
                 →
               </button>
@@ -341,15 +385,15 @@ export default function App() {
                   key={date}
                   onClick={() => setSelectedDate(date)}
                   className={cls(
-                    "text-left rounded-2xl p-4 border-2",
+                    "text-left rounded-2xl p-4 border-2 card-lift transition",
                     selectedDate === date
-                      ? "border-emerald-500 bg-emerald-50"
-                      : "border-slate-100 bg-slate-50"
+                      ? "border-cyan-400 bg-gradient-to-br from-cyan-50 via-sky-50 to-emerald-50 shadow-lg"
+                      : "border-slate-100 bg-white hover:border-cyan-200 hover:shadow-md"
                   )}
                 >
-                  <div className="font-black">{dayName(date)}</div>
+                  <div className="font-black text-slate-800">{dayName(date)}</div>
                   <div className="text-sm text-slate-500">{date}</div>
-                  <div className="mt-3 text-sm font-semibold">
+                  <div className="mt-3 text-sm font-semibold text-slate-700">
                     {dShifts.length} turnos · {total.toFixed(1)} h
                   </div>
                 </button>
@@ -358,21 +402,30 @@ export default function App() {
           </div>
         </section>
 
-        <section className="bg-white rounded-3xl p-4 shadow-sm">
+        <section className="app-card rounded-3xl p-4">
           <h2 className="font-black flex items-center gap-2 mb-4">
             <BarChart3 /> Equilibrio semanal
           </h2>
 
           {SOCIOS.map((s) => (
-            <div key={s.id} className="mb-4">
+            <div key={s.id} className="mb-4 p-3 rounded-2xl bg-slate-50/80 border border-slate-100">
               <div className="flex justify-between text-sm font-bold mb-1">
                 <span>{s.nombre}</span>
                 <span>{stats[s.id].toFixed(1)} h</span>
               </div>
               <div className="h-4 bg-slate-100 rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-emerald-400"
-                  style={{ width: `${Math.min(100, stats[s.id] * 5)}%` }}
+                  className={cls(
+                    "h-full bg-gradient-to-r",
+                    SOCIO_STYLES[s.id].bar
+                  )}
+                  style={{
+                    width: `${
+                      maxHours > 0
+                        ? Math.min(100, (stats[s.id] / maxHours) * 100)
+                        : 0
+                    }%`,
+                  }}
                 />
               </div>
             </div>
@@ -383,7 +436,7 @@ export default function App() {
           </p>
         </section>
 
-        <section className="lg:col-span-2 bg-white rounded-3xl p-4 shadow-sm">
+        <section className="lg:col-span-2 app-card rounded-3xl p-4">
           <div className="flex items-center justify-between gap-3 mb-4">
             <div>
               <h2 className="font-black text-lg">
@@ -396,7 +449,7 @@ export default function App() {
 
             <button
               onClick={autoSuggest}
-              className="bg-slate-950 text-white px-4 py-3 rounded-2xl font-bold"
+              className="bg-gradient-to-r from-cyan-500 to-emerald-500 text-white px-4 py-3 rounded-2xl font-bold btn-lift"
             >
               Proponer turnos
             </button>
@@ -406,29 +459,25 @@ export default function App() {
             {SOCIOS.map((s) => (
               <div
                 key={s.id}
-                className="bg-slate-50 rounded-2xl p-4 border border-slate-100"
+                className="bg-gradient-to-br from-white via-slate-50 to-cyan-50 rounded-2xl p-4 border border-slate-100 shadow-sm"
               >
                 <h3 className="font-black flex items-center gap-2 mb-3">
                   <User size={18} /> {s.nombre}
                 </h3>
 
                 <div className="grid grid-cols-3 gap-2">
-                  {["manana", "tarde", "todo"].map((tramo) => (
+                  {TRAMOS.map((tramo) => (
                     <button
-                      key={tramo}
-                      onClick={() => toggleAvailability(s.id, tramo)}
+                      key={tramo.id}
+                      onClick={() => toggleAvailability(s.id, tramo.id)}
                       className={cls(
-                        "py-2 rounded-xl text-sm font-bold",
-                        selectedAvailability[s.id]?.[tramo]
-                          ? "bg-emerald-400"
-                          : "bg-white border"
+                        "py-2 rounded-xl text-sm font-bold border transition",
+                        selectedAvailability[s.id]?.[tramo.id]
+                          ? tramo.active
+                          : "bg-white border-slate-200 text-slate-600 hover:border-cyan-200 hover:text-cyan-700"
                       )}
                     >
-                      {tramo === "manana"
-                        ? "Mañana"
-                        : tramo === "tarde"
-                        ? "Tarde"
-                        : "Todo"}
+                      {tramo.label}
                     </button>
                   ))}
                 </div>
@@ -442,7 +491,7 @@ export default function App() {
                         selectedDayInfo?.cierre === "00:00" ? "16:30" : "14:30"
                       )
                     }
-                    className="bg-white border rounded-xl p-2 text-sm"
+                    className="bg-white border border-slate-200 rounded-xl p-2 text-sm hover:border-amber-300 hover:bg-amber-50 transition"
                   >
                     + Mañana
                   </button>
@@ -455,7 +504,7 @@ export default function App() {
                         selectedDayInfo?.cierre || "20:30"
                       )
                     }
-                    className="bg-white border rounded-xl p-2 text-sm"
+                    className="bg-white border border-slate-200 rounded-xl p-2 text-sm hover:border-orange-300 hover:bg-orange-50 transition"
                   >
                     + Tarde
                   </button>
@@ -470,7 +519,7 @@ export default function App() {
 
           <div className="space-y-2">
             {selectedShifts.length === 0 && (
-              <p className="text-slate-500 bg-slate-50 p-4 rounded-2xl">
+              <p className="text-slate-500 bg-slate-50 p-4 rounded-2xl border border-dashed border-slate-200">
                 Todavía no hay turnos asignados para este día.
               </p>
             )}
@@ -480,18 +529,31 @@ export default function App() {
               return (
                 <div
                   key={s.id}
-                  className="flex items-center justify-between bg-slate-50 rounded-2xl p-3"
+                  className={cls(
+                    "flex items-center justify-between rounded-2xl p-3 border shadow-sm",
+                    SOCIO_STYLES[s.socio]?.shift
+                  )}
                 >
                   <div>
-                    <b>{socio?.nombre}</b>
-                    <div className="text-sm text-slate-500">
+                    <div className="flex items-center gap-2 mb-1">
+                      <b>{socio?.nombre}</b>
+                      <span
+                        className={cls(
+                          "px-2 py-0.5 rounded-full text-xs font-bold border",
+                          SOCIO_STYLES[s.socio]?.chip
+                        )}
+                      >
+                        {hoursBetween(s.inicio, s.fin).toFixed(1)} h
+                      </span>
+                    </div>
+                    <div className="text-sm text-slate-600">
                       {s.inicio} - {s.fin} ·{" "}
-                      {hoursBetween(s.inicio, s.fin).toFixed(1)} h
+                      turno asignado
                     </div>
                   </div>
                   <button
                     onClick={() => deleteShift(s.id)}
-                    className="text-red-500 p-2"
+                    className="text-red-500 p-2 rounded-xl hover:bg-white/70 transition"
                   >
                     <Trash2 size={18} />
                   </button>
@@ -501,7 +563,7 @@ export default function App() {
           </div>
         </section>
 
-        <section className="bg-white rounded-3xl p-4 shadow-sm">
+        <section className="app-card rounded-3xl p-4">
           <h2 className="font-black flex items-center gap-2 mb-4">
             <ClipboardList /> Tareas del día
           </h2>
@@ -512,8 +574,10 @@ export default function App() {
                 key={t.id}
                 onClick={() => toggleTask(t.id)}
                 className={cls(
-                  "w-full flex items-center gap-2 text-left p-3 rounded-2xl",
-                  t.done ? "bg-emerald-50 text-emerald-700" : "bg-slate-50"
+                  "w-full flex items-center gap-2 text-left p-3 rounded-2xl transition",
+                  t.done
+                    ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                    : "bg-slate-50 border border-slate-100 hover:border-cyan-200 hover:bg-cyan-50/40"
                 )}
               >
                 <CheckCircle2
@@ -530,11 +594,11 @@ export default function App() {
               value={newTask}
               onChange={(e) => setNewTask(e.target.value)}
               placeholder="Nueva tarea"
-              className="min-w-0 flex-1 p-3 rounded-xl bg-slate-50 border"
+              className="min-w-0 flex-1 p-3 rounded-xl bg-slate-50 border border-slate-200 focus-ring"
             />
             <button
               onClick={addTask}
-              className="bg-slate-950 text-white p-3 rounded-xl"
+              className="bg-gradient-to-r from-rose-500 to-orange-500 text-white p-3 rounded-xl btn-lift"
             >
               <Plus />
             </button>
