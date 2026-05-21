@@ -33,29 +33,29 @@ const TRAMOS = [
   {
     id: "manana",
     label: "Mañana",
-    active: "bg-amber-200 text-amber-900 border-amber-300 shadow-sm",
+    active: "bg-amber-500/25 text-amber-200 border-amber-400/50 shadow-sm",
   },
   {
     id: "tarde",
     label: "Tarde",
-    active: "bg-orange-200 text-orange-900 border-orange-300 shadow-sm",
+    active: "bg-orange-500/25 text-orange-200 border-orange-400/50 shadow-sm",
   },
   {
     id: "todo",
     label: "Todo",
-    active: "bg-cyan-200 text-cyan-900 border-cyan-300 shadow-sm",
+    active: "bg-cyan-500/25 text-cyan-200 border-cyan-400/50 shadow-sm",
   },
 ];
 
 const SOCIO_STYLES = {
   socio1: {
-    chip: "bg-cyan-100 text-cyan-800 border-cyan-200",
-    shift: "bg-gradient-to-r from-cyan-50 to-blue-50 border-cyan-100",
+    chip: "bg-cyan-500/20 text-cyan-200 border-cyan-400/40",
+    shift: "bg-gradient-to-r from-cyan-500/15 to-blue-500/15 border-cyan-400/30",
     bar: "from-cyan-400 to-blue-500",
   },
   socio2: {
-    chip: "bg-emerald-100 text-emerald-800 border-emerald-200",
-    shift: "bg-gradient-to-r from-emerald-50 to-teal-50 border-emerald-100",
+    chip: "bg-emerald-500/20 text-emerald-200 border-emerald-400/40",
+    shift: "bg-gradient-to-r from-emerald-500/15 to-teal-500/15 border-emerald-400/30",
     bar: "from-emerald-400 to-teal-500",
   },
 };
@@ -272,23 +272,23 @@ export default function App() {
 
   if (!activeUser) {
     return (
-      <div className="min-h-screen login-bg text-white flex items-center justify-center p-4">
-        <div className="w-full max-w-md login-card rounded-3xl p-6 shadow-2xl border border-white/40">
+      <div className="min-h-screen login-bg text-slate-100 flex items-center justify-center p-4">
+        <div className="w-full max-w-md login-card rounded-3xl p-6 shadow-2xl">
           <div className="flex items-center gap-3 mb-6">
             <div className="bg-gradient-to-br from-cyan-300 to-emerald-300 text-slate-900 rounded-2xl p-3 shadow-lg">
               <Lock />
             </div>
             <div>
-              <h1 className="text-3xl font-black tracking-tight text-slate-900">
+              <h1 className="text-3xl font-black tracking-tight text-slate-100">
                 {APP_NAME}
               </h1>
-              <p className="text-slate-600 font-medium">Turnos y tareas</p>
+              <p className="text-slate-300 font-medium">Turnos y tareas</p>
             </div>
           </div>
 
-          <label className="text-sm text-slate-600 font-semibold">Usuario</label>
+          <label className="text-sm text-slate-300 font-semibold">Usuario</label>
           <select
-            className="w-full mt-1 mb-4 p-3 rounded-xl bg-white border border-cyan-100 text-slate-800 focus-ring"
+            className="w-full mt-1 mb-4 p-3 rounded-xl bg-slate-900/70 border border-slate-600 text-slate-100 focus-ring"
             value={loginUser}
             onChange={(e) => setLoginUser(e.target.value)}
           >
@@ -299,9 +299,9 @@ export default function App() {
             ))}
           </select>
 
-          <label className="text-sm text-slate-600 font-semibold">Contraseña</label>
+          <label className="text-sm text-slate-300 font-semibold">Contraseña</label>
           <input
-            className="w-full mt-1 mb-4 p-3 rounded-xl bg-white border border-cyan-100 text-slate-800 placeholder-slate-400 focus-ring"
+            className="w-full mt-1 mb-4 p-3 rounded-xl bg-slate-900/70 border border-slate-600 text-slate-100 placeholder-slate-400 focus-ring"
             type="password"
             value={pin}
             onChange={(e) => setPin(e.target.value)}
@@ -315,7 +315,7 @@ export default function App() {
             Entrar
           </button>
 
-          <p className="text-xs text-slate-500 mt-4 font-medium">
+          <p className="text-xs text-slate-400 mt-4 font-medium">
             Demo: Socio 1 = 1234 · Socio 2 = 5678
           </p>
         </div>
@@ -329,20 +329,20 @@ export default function App() {
   );
 
   return (
-    <div className="min-h-screen app-bg text-slate-900 pb-24">
+    <div className="min-h-screen app-bg text-slate-100 pb-24">
       <header className="sticky top-0 z-20 app-header p-4 shadow-xl">
         <div className="max-w-6xl mx-auto flex items-center justify-between gap-3 text-white">
           <div>
             <h1 className="text-xl md:text-2xl font-black tracking-tight">
               {APP_NAME}
             </h1>
-            <p className="text-sm text-cyan-100">
+            <p className="text-sm text-cyan-200">
               {activeUser.nombre} · planificación flexible
             </p>
           </div>
           <button
             onClick={() => setActiveUser(null)}
-            className="bg-white/20 hover:bg-white/30 p-3 rounded-2xl transition"
+            className="bg-white/10 hover:bg-white/20 p-3 rounded-2xl transition border border-white/15"
             aria-label="Cerrar sesión"
           >
             <LogOut size={20} />
@@ -359,13 +359,13 @@ export default function App() {
             <div className="flex gap-2">
               <button
                 onClick={() => setWeekStart(addDays(weekDates[0], -7))}
-                className="px-3 py-2 bg-cyan-50 hover:bg-cyan-100 text-cyan-700 rounded-xl transition"
+                className="px-3 py-2 bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-200 rounded-xl transition border border-cyan-400/25"
               >
                 ←
               </button>
               <button
                 onClick={() => setWeekStart(addDays(weekDates[0], 7))}
-                className="px-3 py-2 bg-cyan-50 hover:bg-cyan-100 text-cyan-700 rounded-xl transition"
+                className="px-3 py-2 bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-200 rounded-xl transition border border-cyan-400/25"
               >
                 →
               </button>
@@ -387,13 +387,13 @@ export default function App() {
                   className={cls(
                     "text-left rounded-2xl p-4 border-2 card-lift transition",
                     selectedDate === date
-                      ? "border-cyan-400 bg-gradient-to-br from-cyan-50 via-sky-50 to-emerald-50 shadow-lg"
-                      : "border-slate-100 bg-white hover:border-cyan-200 hover:shadow-md"
+                      ? "border-cyan-400/70 bg-gradient-to-br from-cyan-500/20 via-blue-500/15 to-emerald-500/20 shadow-lg"
+                      : "border-slate-700 bg-slate-900/65 hover:border-cyan-400/50 hover:shadow-md"
                   )}
                 >
-                  <div className="font-black text-slate-800">{dayName(date)}</div>
-                  <div className="text-sm text-slate-500">{date}</div>
-                  <div className="mt-3 text-sm font-semibold text-slate-700">
+                  <div className="font-black text-slate-100">{dayName(date)}</div>
+                  <div className="text-sm text-slate-400">{date}</div>
+                  <div className="mt-3 text-sm font-semibold text-slate-300">
                     {dShifts.length} turnos · {total.toFixed(1)} h
                   </div>
                 </button>
@@ -408,12 +408,12 @@ export default function App() {
           </h2>
 
           {SOCIOS.map((s) => (
-            <div key={s.id} className="mb-4 p-3 rounded-2xl bg-slate-50/80 border border-slate-100">
+            <div key={s.id} className="mb-4 p-3 rounded-2xl bg-slate-900/65 border border-slate-700">
               <div className="flex justify-between text-sm font-bold mb-1">
                 <span>{s.nombre}</span>
                 <span>{stats[s.id].toFixed(1)} h</span>
               </div>
-              <div className="h-4 bg-slate-100 rounded-full overflow-hidden">
+              <div className="h-4 bg-slate-800 rounded-full overflow-hidden border border-slate-700">
                 <div
                   className={cls(
                     "h-full bg-gradient-to-r",
@@ -431,7 +431,7 @@ export default function App() {
             </div>
           ))}
 
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-slate-400">
             La app prioriza al socio con menos horas al proponer turnos.
           </p>
         </section>
@@ -442,7 +442,7 @@ export default function App() {
               <h2 className="font-black text-lg">
                 {dayName(selectedDate)} · {selectedDate}
               </h2>
-              <p className="text-sm text-slate-500">
+              <p className="text-sm text-slate-400">
                 Horario: {selectedDayInfo?.apertura} - {selectedDayInfo?.cierre}
               </p>
             </div>
@@ -459,7 +459,7 @@ export default function App() {
             {SOCIOS.map((s) => (
               <div
                 key={s.id}
-                className="bg-gradient-to-br from-white via-slate-50 to-cyan-50 rounded-2xl p-4 border border-slate-100 shadow-sm"
+                className="bg-gradient-to-br from-slate-900/80 via-slate-900/70 to-cyan-900/20 rounded-2xl p-4 border border-slate-700 shadow-sm"
               >
                 <h3 className="font-black flex items-center gap-2 mb-3">
                   <User size={18} /> {s.nombre}
@@ -474,7 +474,7 @@ export default function App() {
                         "py-2 rounded-xl text-sm font-bold border transition",
                         selectedAvailability[s.id]?.[tramo.id]
                           ? tramo.active
-                          : "bg-white border-slate-200 text-slate-600 hover:border-cyan-200 hover:text-cyan-700"
+                          : "bg-slate-900/70 border-slate-700 text-slate-300 hover:border-cyan-400/50 hover:text-cyan-200"
                       )}
                     >
                       {tramo.label}
@@ -491,7 +491,7 @@ export default function App() {
                         selectedDayInfo?.cierre === "00:00" ? "16:30" : "14:30"
                       )
                     }
-                    className="bg-white border border-slate-200 rounded-xl p-2 text-sm hover:border-amber-300 hover:bg-amber-50 transition"
+                    className="bg-slate-900/70 border border-slate-700 rounded-xl p-2 text-sm hover:border-amber-400/60 hover:bg-amber-500/15 transition"
                   >
                     + Mañana
                   </button>
@@ -504,7 +504,7 @@ export default function App() {
                         selectedDayInfo?.cierre || "20:30"
                       )
                     }
-                    className="bg-white border border-slate-200 rounded-xl p-2 text-sm hover:border-orange-300 hover:bg-orange-50 transition"
+                    className="bg-slate-900/70 border border-slate-700 rounded-xl p-2 text-sm hover:border-orange-400/60 hover:bg-orange-500/15 transition"
                   >
                     + Tarde
                   </button>
@@ -519,7 +519,7 @@ export default function App() {
 
           <div className="space-y-2">
             {selectedShifts.length === 0 && (
-              <p className="text-slate-500 bg-slate-50 p-4 rounded-2xl border border-dashed border-slate-200">
+              <p className="text-slate-400 bg-slate-900/65 p-4 rounded-2xl border border-dashed border-slate-700">
                 Todavía no hay turnos asignados para este día.
               </p>
             )}
@@ -546,14 +546,14 @@ export default function App() {
                         {hoursBetween(s.inicio, s.fin).toFixed(1)} h
                       </span>
                     </div>
-                    <div className="text-sm text-slate-600">
+                    <div className="text-sm text-slate-300">
                       {s.inicio} - {s.fin} ·{" "}
                       turno asignado
                     </div>
                   </div>
                   <button
                     onClick={() => deleteShift(s.id)}
-                    className="text-red-500 p-2 rounded-xl hover:bg-white/70 transition"
+                    className="text-rose-300 p-2 rounded-xl hover:bg-rose-500/15 transition"
                   >
                     <Trash2 size={18} />
                   </button>
@@ -576,13 +576,13 @@ export default function App() {
                 className={cls(
                   "w-full flex items-center gap-2 text-left p-3 rounded-2xl transition",
                   t.done
-                    ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                    : "bg-slate-50 border border-slate-100 hover:border-cyan-200 hover:bg-cyan-50/40"
+                    ? "bg-emerald-500/15 text-emerald-200 border border-emerald-400/40"
+                    : "bg-slate-900/65 border border-slate-700 hover:border-cyan-400/40 hover:bg-cyan-500/10"
                 )}
               >
                 <CheckCircle2
                   size={20}
-                  className={t.done ? "text-emerald-500" : "text-slate-300"}
+                  className={t.done ? "text-emerald-300" : "text-slate-500"}
                 />
                 <span className={t.done ? "line-through" : ""}>{t.text}</span>
               </button>
@@ -594,7 +594,7 @@ export default function App() {
               value={newTask}
               onChange={(e) => setNewTask(e.target.value)}
               placeholder="Nueva tarea"
-              className="min-w-0 flex-1 p-3 rounded-xl bg-slate-50 border border-slate-200 focus-ring"
+              className="min-w-0 flex-1 p-3 rounded-xl bg-slate-900/70 border border-slate-700 text-slate-100 placeholder-slate-500 focus-ring"
             />
             <button
               onClick={addTask}
