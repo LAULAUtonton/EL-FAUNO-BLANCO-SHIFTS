@@ -4,9 +4,14 @@ import {
   Plus, Trash2, User, BarChart3, Lock, LogOut, CircleHelp, X
 } from "lucide-react";
 
+const SOCIO_COLORS = {
+  socio1: "#22d3ee",
+  socio2: "#34d399",
+};
+
 const SOCIOS = [
-  { id: "socio1", nombre: "Socio 1", pin: "1234", color: "#22d3ee" },
-  { id: "socio2", nombre: "Socio 2", pin: "5678", color: "#34d399" },
+  { id: "socio1", nombre: "Socio 1", pin: "1234", color: SOCIO_COLORS.socio1 },
+  { id: "socio2", nombre: "Socio 2", pin: "5678", color: SOCIO_COLORS.socio2 },
 ];
 
 const HORARIOS_BASE = {
@@ -62,6 +67,7 @@ const SOCIO_STYLES = {
 
 const MIN_HOURS_BASE = 8;
 const APP_NAME = "El Fauno Blanco";
+const MORNING_START_TIME = "08:30";
 const STATUS_STYLES = {
   asignado: "bg-indigo-500/20 text-indigo-100 border-indigo-300/50",
   disponible: "bg-emerald-500/20 text-emerald-100 border-emerald-300/50",
@@ -72,6 +78,7 @@ const STATUS_LABELS = {
   disponible: "Disponible",
   "no-disponible": "No disponible",
 };
+const STATUS_ORDER = ["asignado", "disponible", "no-disponible"];
 
 function todayISO() {
   return new Date().toISOString().slice(0, 10);
@@ -113,6 +120,12 @@ function cls(...v) {
   return v.filter(Boolean).join(" ");
 }
 
+function hasAvailability(memberAvailability, period = "any") {
+  if (period === "manana") return memberAvailability.manana || memberAvailability.todo;
+  if (period === "tarde") return memberAvailability.tarde || memberAvailability.todo;
+  return memberAvailability.manana || memberAvailability.tarde || memberAvailability.todo;
+}
+
 export default function App() {
   const [activeUser, setActiveUser] = useState(null);
   const [loginUser, setLoginUser] = useState("socio1");
@@ -149,22 +162,24 @@ export default function App() {
       done: false,
     }));
 
-  function getMemberStatus(memberId) {
-    const memberAvailability = selectedAvailability[memberId] || {};
-    const assignedToday = selectedShifts.some((s) => s.socio === memberId);
-    if (assignedToday) return "asignado";
-    if (memberAvailability.manana || memberAvailability.tarde || memberAvailability.todo) {
-      return "disponible";
-    }
-    return "no-disponible";
-  }
+  const memberStatuses = useMemo(() => {
+    return Object.fromEntries(
+      SOCIOS.map((member) => {
+        const memberAvailability = selectedAvailability[member.id] || {};
+        const assignedToday = selectedShifts.some((s) => s.socio === member.id);
+        if (assignedToday) return [member.id, "asignado"];
+        if (hasAvailability(memberAvailability)) {
+          return [member.id, "disponible"];
+        }
+        return [member.id, "no-disponible"];
+      })
+    );
+  }, [selectedAvailability, selectedShifts]);
 
   function isShiftWithinAvailability(shift) {
     const memberAvailability = selectedAvailability[shift.socio] || {};
-    if (shift.inicio === "08:30") {
-      return memberAvailability.manana || memberAvailability.todo;
-    }
-    return memberAvailability.tarde || memberAvailability.todo;
+    const period = shift.inicio === MORNING_START_TIME ? "manana" : "tarde";
+    return hasAvailability(memberAvailability, period);
   }
 
   function login() {
@@ -233,8 +248,8 @@ export default function App() {
 
     const morning =
       selectedDayInfo.cierre === "00:00"
-        ? ["08:30", "16:30"]
-        : ["08:30", "14:30"];
+        ? [MORNING_START_TIME, "16:30"]
+        : [MORNING_START_TIME, "14:30"];
 
     const evening =
       selectedDayInfo.cierre === "00:00"
@@ -404,9 +419,16 @@ export default function App() {
               <div className="bg-slate-900/55 rounded-2xl border border-slate-600 p-3">
                 <p className="font-bold mb-2">Estado de socios</p>
                 <div className="flex flex-wrap gap-2">
-                  <span className={cls("px-2 py-1 rounded-full border text-xs font-bold", STATUS_STYLES.asignado)}>Asignado</span>
-                  <span className={cls("px-2 py-1 rounded-full border text-xs font-bold", STATUS_STYLES.disponible)}>Disponible</span>
-                  <span className={cls("px-2 py-1 rounded-full border text-xs font-bold", STATUS_STYLES["no-disponible"])}>No disponible</span>
+                  {STATUS_ORDER.map((status) => (
+                    <span
+                      key={status}
+                      role="status"
+                      aria-label={`Estado ${STATUS_LABELS[status]}`}
+                      className={cls("px-2 py-1 rounded-full border text-xs font-bold", STATUS_STYLES[status])}
+                    >
+                      {STATUS_LABELS[status]}
+                    </span>
+                  ))}
                 </div>
               </div>
               <div className="bg-slate-900/55 rounded-2xl border border-slate-600 p-3">
@@ -414,7 +436,12 @@ export default function App() {
                 <div className="flex flex-wrap gap-2">
                   {SOCIOS.map((s) => (
                     <span key={s.id} className="inline-flex items-center gap-2 px-2 py-1 rounded-full border border-slate-500 text-xs font-bold">
-                      <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: s.color }} />
+                      <span
+                        className="h-2.5 w-2.5 rounded-full"
+                        style={{ backgroundColor: s.color }}
+                        role="img"
+                        aria-label={`Color asignado para ${s.nombre}`}
+                      />
                       {s.nombre}
                     </span>
                   ))}
@@ -483,7 +510,12 @@ export default function App() {
             <div key={s.id} className="mb-4 p-3 rounded-2xl bg-slate-900/65 border border-slate-700">
               <div className="flex justify-between text-sm font-bold mb-1">
                 <span className="inline-flex items-center gap-2">
-                  <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: s.color }} />
+                  <span
+                    className="h-2.5 w-2.5 rounded-full"
+                    style={{ backgroundColor: s.color }}
+                    role="img"
+                    aria-label={`Color asignado para ${s.nombre}`}
+                  />
                   {s.nombre}
                 </span>
                 <span>{stats[s.id].toFixed(1)} h</span>
@@ -539,16 +571,23 @@ export default function App() {
                 <h3 className="font-black flex items-center gap-2 mb-3">
                   <User size={18} />{" "}
                   <span className="inline-flex items-center gap-2">
-                    <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: s.color }} />
+                    <span
+                      className="h-2.5 w-2.5 rounded-full"
+                      style={{ backgroundColor: s.color }}
+                      role="img"
+                      aria-label={`Color asignado para ${s.nombre}`}
+                    />
                     {s.nombre}
                   </span>
                   <span
+                    role="status"
+                    aria-label={`Estado de ${s.nombre}: ${STATUS_LABELS[memberStatuses[s.id]]}`}
                     className={cls(
                       "ml-auto px-2 py-0.5 rounded-full text-xs font-bold border",
-                      STATUS_STYLES[getMemberStatus(s.id)]
+                      STATUS_STYLES[memberStatuses[s.id]]
                     )}
                   >
-                    {STATUS_LABELS[getMemberStatus(s.id)]}
+                    {STATUS_LABELS[memberStatuses[s.id]]}
                   </span>
                 </h3>
 
@@ -575,7 +614,7 @@ export default function App() {
                     onClick={() =>
                       addShift(
                         s.id,
-                        "08:30",
+                        MORNING_START_TIME,
                         selectedDayInfo?.cierre === "00:00" ? "16:30" : "14:30"
                       )
                     }
@@ -630,7 +669,12 @@ export default function App() {
                   <div>
                     <div className="flex items-center gap-2 mb-1">
                       <b className="inline-flex items-center gap-2">
-                        <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: socio?.color }} />
+                        <span
+                          className="h-2.5 w-2.5 rounded-full"
+                          style={{ backgroundColor: socio?.color }}
+                          role="img"
+                          aria-label={`Color asignado para ${socio ? socio.nombre : s.socio}`}
+                        />
                         {socio?.nombre}
                       </b>
                       <span
