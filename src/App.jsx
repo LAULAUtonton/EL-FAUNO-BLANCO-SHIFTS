@@ -239,20 +239,20 @@ export default function App() {
   if (!activeUser) {
     return (
       <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center p-4">
-        <div className="w-full max-w-md bg-white/10 rounded-3xl p-6 shadow-2xl border border-white/10">
+        <div className="w-full max-w-md bg-slate-900/90 rounded-3xl p-6 shadow-2xl border border-slate-500">
           <div className="flex items-center gap-3 mb-6">
             <div className="bg-emerald-400 text-slate-950 rounded-2xl p-3">
               <Lock />
             </div>
             <div>
-              <h1 className="text-2xl font-bold">El Fauno Blanco</h1>
-              <p className="text-slate-300">Turnos y tareas</p>
+              <h1 className="text-2xl font-black">El Fauno Blanco</h1>
+              <p className="text-slate-100 font-semibold">Turnos y tareas</p>
             </div>
           </div>
 
-          <label className="text-sm text-slate-300">Usuario</label>
+          <label className="text-sm text-slate-100 font-semibold">Usuario</label>
           <select
-            className="w-full mt-1 mb-4 p-3 rounded-xl bg-slate-900 border border-white/10"
+            className="w-full mt-1 mb-4 p-3 rounded-xl bg-white border-2 border-slate-400 text-slate-900"
             value={loginUser}
             onChange={(e) => setLoginUser(e.target.value)}
           >
@@ -263,9 +263,9 @@ export default function App() {
             ))}
           </select>
 
-          <label className="text-sm text-slate-300">Contraseña</label>
+          <label className="text-sm text-slate-100 font-semibold">Contraseña</label>
           <input
-            className="w-full mt-1 mb-4 p-3 rounded-xl bg-slate-900 border border-white/10"
+            className="w-full mt-1 mb-4 p-3 rounded-xl bg-white border-2 border-slate-400 text-slate-900 placeholder-slate-500"
             type="password"
             value={pin}
             onChange={(e) => setPin(e.target.value)}
@@ -274,12 +274,12 @@ export default function App() {
 
           <button
             onClick={login}
-            className="w-full bg-emerald-400 text-slate-950 font-bold py-3 rounded-xl"
+            className="w-full bg-emerald-400 hover:bg-emerald-300 text-slate-950 font-black py-3 rounded-xl transition"
           >
             Entrar
           </button>
 
-          <p className="text-xs text-slate-400 mt-4">
+          <p className="text-xs text-slate-200 mt-4">
             Demo: Socio 1 = 1234 · Socio 2 = 5678
           </p>
         </div>
@@ -288,7 +288,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-900 pb-24">
+    <div className="min-h-screen bg-slate-200 text-slate-900 pb-24">
       <header className="sticky top-0 z-20 bg-slate-950 text-white p-4 shadow-xl">
         <div className="max-w-6xl mx-auto flex items-center justify-between gap-3">
           <div>
@@ -299,7 +299,7 @@ export default function App() {
           </div>
           <button
             onClick={() => setActiveUser(null)}
-            className="bg-white/10 p-3 rounded-2xl"
+            className="bg-white/20 hover:bg-white/30 p-3 rounded-2xl transition"
           >
             <LogOut size={20} />
           </button>
@@ -307,7 +307,7 @@ export default function App() {
       </header>
 
       <main className="max-w-6xl mx-auto p-4 grid lg:grid-cols-3 gap-4">
-        <section className="lg:col-span-2 bg-white rounded-3xl p-4 shadow-sm">
+        <section className="lg:col-span-2 bg-white rounded-3xl p-4 shadow-sm border border-slate-300">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-black flex items-center gap-2">
               <CalendarDays /> Calendario semanal
@@ -315,13 +315,13 @@ export default function App() {
             <div className="flex gap-2">
               <button
                 onClick={() => setWeekStart(addDays(weekDates[0], -7))}
-                className="px-3 py-2 bg-slate-100 rounded-xl"
+                className="px-3 py-2 bg-slate-100 border border-slate-300 hover:bg-slate-200 text-slate-900 rounded-xl transition"
               >
                 ←
               </button>
               <button
                 onClick={() => setWeekStart(addDays(weekDates[0], 7))}
-                className="px-3 py-2 bg-slate-100 rounded-xl"
+                className="px-3 py-2 bg-slate-100 border border-slate-300 hover:bg-slate-200 text-slate-900 rounded-xl transition"
               >
                 →
               </button>
@@ -341,14 +341,14 @@ export default function App() {
                   key={date}
                   onClick={() => setSelectedDate(date)}
                   className={cls(
-                    "text-left rounded-2xl p-4 border-2",
+                    "text-left rounded-2xl p-4 border-2 transition",
                     selectedDate === date
-                      ? "border-emerald-500 bg-emerald-50"
-                      : "border-slate-100 bg-slate-50"
+                      ? "border-blue-700 bg-blue-100 shadow-md"
+                      : "border-slate-300 bg-slate-50 hover:border-blue-500"
                   )}
                 >
-                  <div className="font-black">{dayName(date)}</div>
-                  <div className="text-sm text-slate-500">{date}</div>
+                  <div className="font-black text-slate-900">{dayName(date)}</div>
+                  <div className="text-sm text-slate-700">{date}</div>
                   <div className="mt-3 text-sm font-semibold">
                     {dShifts.length} turnos · {total.toFixed(1)} h
                   </div>
@@ -358,7 +358,7 @@ export default function App() {
           </div>
         </section>
 
-        <section className="bg-white rounded-3xl p-4 shadow-sm">
+        <section className="bg-white rounded-3xl p-4 shadow-sm border border-slate-300">
           <h2 className="font-black flex items-center gap-2 mb-4">
             <BarChart3 /> Equilibrio semanal
           </h2>
@@ -369,21 +369,21 @@ export default function App() {
                 <span>{s.nombre}</span>
                 <span>{stats[s.id].toFixed(1)} h</span>
               </div>
-              <div className="h-4 bg-slate-100 rounded-full overflow-hidden">
+              <div className="h-4 bg-slate-200 rounded-full overflow-hidden border border-slate-300">
                 <div
-                  className="h-full bg-emerald-400"
+                  className="h-full bg-emerald-600"
                   style={{ width: `${Math.min(100, stats[s.id] * 5)}%` }}
                 />
               </div>
             </div>
           ))}
 
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-slate-700">
             La app prioriza al socio con menos horas al proponer turnos.
           </p>
         </section>
 
-        <section className="lg:col-span-2 bg-white rounded-3xl p-4 shadow-sm">
+        <section className="lg:col-span-2 bg-white rounded-3xl p-4 shadow-sm border border-slate-300">
           <div className="flex items-center justify-between gap-3 mb-4">
             <div>
               <h2 className="font-black text-lg">
@@ -396,7 +396,7 @@ export default function App() {
 
             <button
               onClick={autoSuggest}
-              className="bg-slate-950 text-white px-4 py-3 rounded-2xl font-bold"
+              className="bg-blue-800 hover:bg-blue-900 text-white px-4 py-3 rounded-2xl font-bold transition"
             >
               Proponer turnos
             </button>
@@ -406,7 +406,7 @@ export default function App() {
             {SOCIOS.map((s) => (
               <div
                 key={s.id}
-                className="bg-slate-50 rounded-2xl p-4 border border-slate-100"
+                className="bg-slate-50 rounded-2xl p-4 border border-slate-300"
               >
                 <h3 className="font-black flex items-center gap-2 mb-3">
                   <User size={18} /> {s.nombre}
@@ -418,10 +418,10 @@ export default function App() {
                       key={tramo}
                       onClick={() => toggleAvailability(s.id, tramo)}
                       className={cls(
-                        "py-2 rounded-xl text-sm font-bold",
+                        "py-2 rounded-xl text-sm font-bold border transition",
                         selectedAvailability[s.id]?.[tramo]
-                          ? "bg-emerald-400"
-                          : "bg-white border"
+                          ? "bg-emerald-600 border-emerald-700 text-white"
+                          : "bg-white border-slate-300 text-slate-800 hover:border-blue-500"
                       )}
                     >
                       {tramo === "manana"
@@ -442,7 +442,7 @@ export default function App() {
                         selectedDayInfo?.cierre === "00:00" ? "16:30" : "14:30"
                       )
                     }
-                    className="bg-white border rounded-xl p-2 text-sm"
+                    className="bg-white border border-slate-300 hover:bg-blue-50 hover:border-blue-500 rounded-xl p-2 text-sm transition"
                   >
                     + Mañana
                   </button>
@@ -455,7 +455,7 @@ export default function App() {
                         selectedDayInfo?.cierre || "20:30"
                       )
                     }
-                    className="bg-white border rounded-xl p-2 text-sm"
+                    className="bg-white border border-slate-300 hover:bg-blue-50 hover:border-blue-500 rounded-xl p-2 text-sm transition"
                   >
                     + Tarde
                   </button>
@@ -470,7 +470,7 @@ export default function App() {
 
           <div className="space-y-2">
             {selectedShifts.length === 0 && (
-              <p className="text-slate-500 bg-slate-50 p-4 rounded-2xl">
+              <p className="text-slate-700 bg-slate-100 p-4 rounded-2xl border border-slate-300">
                 Todavía no hay turnos asignados para este día.
               </p>
             )}
@@ -480,18 +480,18 @@ export default function App() {
               return (
                 <div
                   key={s.id}
-                  className="flex items-center justify-between bg-slate-50 rounded-2xl p-3"
+                  className="flex items-center justify-between bg-slate-50 rounded-2xl p-3 border border-slate-300"
                 >
                   <div>
                     <b>{socio?.nombre}</b>
-                    <div className="text-sm text-slate-500">
+                    <div className="text-sm text-slate-700">
                       {s.inicio} - {s.fin} ·{" "}
                       {hoursBetween(s.inicio, s.fin).toFixed(1)} h
                     </div>
                   </div>
                   <button
                     onClick={() => deleteShift(s.id)}
-                    className="text-red-500 p-2"
+                    className="text-red-700 hover:text-red-800 bg-red-100 hover:bg-red-200 p-2 rounded-xl transition"
                   >
                     <Trash2 size={18} />
                   </button>
@@ -501,7 +501,7 @@ export default function App() {
           </div>
         </section>
 
-        <section className="bg-white rounded-3xl p-4 shadow-sm">
+        <section className="bg-white rounded-3xl p-4 shadow-sm border border-slate-300">
           <h2 className="font-black flex items-center gap-2 mb-4">
             <ClipboardList /> Tareas del día
           </h2>
@@ -512,13 +512,15 @@ export default function App() {
                 key={t.id}
                 onClick={() => toggleTask(t.id)}
                 className={cls(
-                  "w-full flex items-center gap-2 text-left p-3 rounded-2xl",
-                  t.done ? "bg-emerald-50 text-emerald-700" : "bg-slate-50"
+                  "w-full flex items-center gap-2 text-left p-3 rounded-2xl border transition",
+                  t.done
+                    ? "bg-emerald-100 border-emerald-300 text-emerald-900"
+                    : "bg-slate-50 border-slate-300 hover:border-blue-500"
                 )}
               >
                 <CheckCircle2
                   size={20}
-                  className={t.done ? "text-emerald-500" : "text-slate-300"}
+                  className={t.done ? "text-emerald-700" : "text-slate-500"}
                 />
                 <span className={t.done ? "line-through" : ""}>{t.text}</span>
               </button>
@@ -530,11 +532,11 @@ export default function App() {
               value={newTask}
               onChange={(e) => setNewTask(e.target.value)}
               placeholder="Nueva tarea"
-              className="min-w-0 flex-1 p-3 rounded-xl bg-slate-50 border"
+              className="min-w-0 flex-1 p-3 rounded-xl bg-slate-50 border-2 border-slate-300 text-slate-900 placeholder-slate-500"
             />
             <button
               onClick={addTask}
-              className="bg-slate-950 text-white p-3 rounded-xl"
+              className="bg-blue-800 hover:bg-blue-900 text-white p-3 rounded-xl transition"
             >
               <Plus />
             </button>

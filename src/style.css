@@ -3,5 +3,28 @@
 body {
   margin: 0;
   font-family: Arial, sans-serif;
-  background: #f1f5f9;
+  min-height: 100vh;
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+html,
+#root {
+  min-height: 100%;
+  width: 100%;
+}
+
+button,
+input,
+select,
+textarea {
+  color: inherit;
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid #1d4ed8;
+  outline-offset: 2px;
 }
