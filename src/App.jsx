@@ -1,247 +1,257 @@
 import { useEffect, useMemo, useState } from "react";
 import "./style.css";
 
-const DIAS = [
-  { id: "lunes", nombre: "Lunes", horas: 4 },
-  { id: "martes", nombre: "Martes", horas: 6 },
-  { id: "miercoles", nombre: "Miércoles", horas: 6 },
-  { id: "jueves", nombre: "Jueves", horas: 6 },
-  { id: "viernes", nombre: "Viernes", horas: 4 },
-  { id: "sabado", nombre: "Sábado", horas: 4 },
-];
-
+const STORAGE = "fauno-blanco-v7-visual";
 const SOCIOS_INICIALES = [
-  { id: "socio1", nombre: "Socio 1", maxHoras: 18 },
-  { id: "socio2", nombre: "Socio 2", maxHoras: 18 },
+  { id: "socio1", nombre: "Socio 1", color: "#2563eb" },
+  { id: "socio2", nombre: "Socio 2", color: "#f97316" },
 ];
 
-const disponibilidadInicial = () =>
-  SOCIOS_INICIALES.reduce((acc, socio) => {
-    acc[socio.id] = DIAS.reduce((dias, dia) => {
-      dias[dia.id] = true;
-      return dias;
-    }, {});
-    return acc;
-  }, {});
+const TURNOS_BASE = [
+  { key: "manana", nombre: "Mañana", icono: "☀️", horas: 6, rango: "08:30–14:30" },
+  { key: "tarde", nombre: "Tarde", icono: "🌤️", horas: 6, rango: "14:30–20:30" },
+];
+const TURNO_NOCHE = { key: "noche", nombre: "Noche", icono: "🌙", horas: 4, rango: "20:30–00:30" };
+const DIAS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
 
-const preferenciasIniciales = () =>
-  SOCIOS_INICIALES.reduce((acc, socio) => {
-    acc[socio.id] = { favoritos: [], evitar: [], nota: "" };
-    return acc;
-  }, {});
-
-function cargarEstado(clave, fallback) {
+function ymd(fecha) {
+  return `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, "0")}-${String(fecha.getDate()).padStart(2, "0")}`;
+}
+function claveTurno(diaId, turnoKey) {
+  return `${diaId}__${turnoKey}`;
+}
+function fechaDeYmd(id) {
+  const [y, m, d] = id.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+function turnosDelDia(fecha) {
+  const dow = fecha.getDay();
+  if (dow === 0) return [];
+  const turnos = [...TURNOS_BASE];
+  if (dow === 5 || dow === 6) turnos.push(TURNO_NOCHE);
+  return turnos;
+}
+function crearDiasMes(year, month) {
+  const first = new Date(year, month, 1);
+  const last = new Date(year, month + 1, 0);
+  const start = new Date(first);
+  start.setDate(first.getDate() - first.getDay());
+  const total = Math.ceil((start.getDay() + last.getDate()) / 7) * 7;
+  return Array.from({ length: Math.max(total, 35) }, (_, i) => {
+    const f = new Date(start);
+    f.setDate(start.getDate() + i);
+    return f;
+  });
+}
+function estadoInicial() {
+  const hoy = new Date();
+  return {
+    paso: "disponibilidad",
+    mes: { year: hoy.getFullYear(), month: hoy.getMonth() },
+    socios: SOCIOS_INICIALES,
+    disponibilidad: {},
+    preferencias: {},
+    asignaciones: {},
+  };
+}
+function cargar() {
   try {
-    const guardado = localStorage.getItem(clave);
-    return guardado ? JSON.parse(guardado) : fallback;
+    const data = JSON.parse(localStorage.getItem(STORAGE));
+    return data ? { ...estadoInicial(), ...data } : estadoInicial();
   } catch {
-    return fallback;
+    return estadoInicial();
   }
 }
 
-function App() {
-  const [paso, setPaso] = useState("disponibilidad");
-  const [socios, setSocios] = useState(() => cargarEstado("fauno-socios", SOCIOS_INICIALES));
-  const [disponibilidad, setDisponibilidad] = useState(() =>
-    cargarEstado("fauno-disponibilidad", disponibilidadInicial())
-  );
-  const [preferencias, setPreferencias] = useState(() =>
-    cargarEstado("fauno-preferencias", preferenciasIniciales())
-  );
-  const [asignaciones, setAsignaciones] = useState(() => cargarEstado("fauno-asignaciones", {}));
-  const [mensaje, setMensaje] = useState("Marca disponibilidad y pulsa asignar automáticamente.");
+export default function App() {
+  const [state, setState] = useState(cargar);
+  const { paso, mes, socios, disponibilidad, preferencias, asignaciones } = state;
+  const [toast, setToast] = useState("Primero marca cuándo puede trabajar cada socio.");
 
-  useEffect(() => localStorage.setItem("fauno-socios", JSON.stringify(socios)), [socios]);
-  useEffect(() => localStorage.setItem("fauno-disponibilidad", JSON.stringify(disponibilidad)), [disponibilidad]);
-  useEffect(() => localStorage.setItem("fauno-preferencias", JSON.stringify(preferencias)), [preferencias]);
-  useEffect(() => localStorage.setItem("fauno-asignaciones", JSON.stringify(asignaciones)), [asignaciones]);
+  const dias = useMemo(() => crearDiasMes(mes.year, mes.month), [mes]);
+  const turnosMes = useMemo(() => dias
+    .filter((f) => f.getMonth() === mes.month)
+    .flatMap((fecha) => turnosDelDia(fecha).map((turno) => ({ ...turno, fecha, diaId: ymd(fecha), id: claveTurno(ymd(fecha), turno.key) }))), [dias, mes.month]);
+  const resumen = useMemo(() => calcularResumen(socios, turnosMes, asignaciones, preferencias), [socios, turnosMes, asignaciones, preferencias]);
 
-  const resumen = useMemo(() => calcularResumen(asignaciones), [asignaciones]);
+  useEffect(() => localStorage.setItem(STORAGE, JSON.stringify(state)), [state]);
 
-  function actualizarNombre(socioId, nombre) {
-    setSocios((prev) => prev.map((s) => (s.id === socioId ? { ...s, nombre } : s)));
+  function setParcial(patch) {
+    setState((prev) => ({ ...prev, ...patch }));
   }
-
-  function cambiarDisponibilidad(socioId, diaId) {
-    setDisponibilidad((prev) => ({
-      ...prev,
-      [socioId]: {
-        ...prev[socioId],
-        [diaId]: !prev[socioId]?.[diaId],
-      },
-    }));
+  function cambiarMes(delta) {
+    const f = new Date(mes.year, mes.month + delta, 1);
+    setParcial({ mes: { year: f.getFullYear(), month: f.getMonth() } });
   }
-
-  function cambiarPreferencia(socioId, tipo, diaId) {
-    setPreferencias((prev) => {
-      const actual = prev[socioId]?.[tipo] || [];
-      const nuevo = actual.includes(diaId) ? actual.filter((d) => d !== diaId) : [...actual, diaId];
-      return { ...prev, [socioId]: { ...prev[socioId], [tipo]: nuevo } };
-    });
+  function cambiarSocio(id, campo, valor) {
+    setParcial({ socios: socios.map((s) => (s.id === id ? { ...s, [campo]: valor } : s)) });
   }
-
-  function cambiarNota(socioId, nota) {
-    setPreferencias((prev) => ({ ...prev, [socioId]: { ...prev[socioId], nota } }));
+  function toggle(mapa, socioId, turnoId) {
+    const nuevo = { ...mapa, [socioId]: { ...(mapa[socioId] || {}), [turnoId]: !mapa[socioId]?.[turnoId] } };
+    return nuevo;
   }
-
-  function asignarAutomaticamente() {
+  function generarAsignacion() {
     const horas = Object.fromEntries(socios.map((s) => [s.id, 0]));
-    const resultado = {};
-    const avisos = [];
+    const turnos = Object.fromEntries(socios.map((s) => [s.id, 0]));
+    const prefsDadas = Object.fromEntries(socios.map((s) => [s.id, 0]));
+    const asignado = {};
+    let sinCubrir = 0;
 
-    DIAS.forEach((dia, index) => {
-      const disponibles = socios.filter((s) => disponibilidad[s.id]?.[dia.id]);
-
-      if (disponibles.length === 0) {
-        resultado[dia.id] = { socioId: null, socioNombre: "Sin cubrir", horas: dia.horas, alerta: true };
-        avisos.push(`${dia.nombre}: nadie disponible`);
-        return;
-      }
-
-      const elegido = disponibles
+    for (const turno of turnosMes) {
+      const candidatos = socios
+        .filter((s) => disponibilidad[s.id]?.[turno.id])
         .map((s) => {
-          const pref = preferencias[s.id] || { favoritos: [], evitar: [] };
-          const diaAnterior = DIAS[index - 1]?.id;
-          const hizoAyer = diaAnterior && resultado[diaAnterior]?.socioId === s.id;
-          let puntuacion = horas[s.id] * 10;
-          if (pref.favoritos?.includes(dia.id)) puntuacion -= 8;
-          if (pref.evitar?.includes(dia.id)) puntuacion += 8;
-          if (hizoAyer) puntuacion += 4;
-          return { ...s, puntuacion };
+          const yaEseDia = Object.entries(asignado).some(([k, v]) => k.startsWith(`${turno.diaId}__`) && v === s.id);
+          const quiere = preferencias[s.id]?.[turno.id] ? 1 : 0;
+          return {
+            ...s,
+            quiere,
+            score: horas[s.id] * 10 + turnos[s.id] * 2 + (yaEseDia ? 14 : 0) - quiere * 8 + prefsDadas[s.id] * 3,
+          };
         })
-        .sort((a, b) => a.puntuacion - b.puntuacion)[0];
+        .sort((a, b) => a.score - b.score || b.quiere - a.quiere || horas[a.id] - horas[b.id]);
 
-      resultado[dia.id] = { socioId: elegido.id, socioNombre: elegido.nombre, horas: dia.horas, alerta: false };
-      horas[elegido.id] += dia.horas;
-    });
-
-    setAsignaciones(resultado);
-    setPaso("asignacion");
-    setMensaje(
-      avisos.length ? `Asignación creada con avisos: ${avisos.join(" · ")}` : "Asignación automática creada y equilibrada."
-    );
+      if (!candidatos.length) {
+        asignado[turno.id] = "sin-cubrir";
+        sinCubrir += 1;
+      } else {
+        const elegido = candidatos[0];
+        asignado[turno.id] = elegido.id;
+        horas[elegido.id] += turno.horas;
+        turnos[elegido.id] += 1;
+        if (elegido.quiere) prefsDadas[elegido.id] += 1;
+      }
+    }
+    setParcial({ asignaciones: asignado, paso: "asignacion" });
+    const diff = Math.abs((horas[socios[0]?.id] || 0) - (horas[socios[1]?.id] || 0));
+    setToast(sinCubrir ? `Hay ${sinCubrir} turnos sin cubrir. Revisa disponibilidad.` : `Asignación generada. Diferencia: ${diff} horas.`);
   }
-
-  function limpiarSemana() {
-    setAsignaciones({});
-    setMensaje("Asignación borrada. Puedes volver a generar otra propuesta.");
+  function limpiar() {
+    setParcial({ disponibilidad: {}, preferencias: {}, asignaciones: {} });
+    setToast("Datos del mes borrados. Puedes empezar de nuevo.");
   }
 
   return (
-    <main className="app-shell">
-      <section className="hero">
-        <div>
-          <p className="eyebrow">El Fauno Blanco</p>
-          <h1>Turnos semanales</h1>
-          <p className="subtitle">Dos socios marcan disponibilidad. La app reparte los días de forma equilibrada.</p>
+    <main className="phone-app">
+      <header className="top-card">
+        <div className="brand-line"><span>🦌</span><b>El Fauno Blanco</b></div>
+        <h1>Turnos del mes</h1>
+        <p>Calendario visual para repartir los turnos entre dos socios con equilibrio y preferencias.</p>
+        <div className="month-bar">
+          <button onClick={() => cambiarMes(-1)} aria-label="Mes anterior">←</button>
+          <strong>{MESES[mes.month]} {mes.year}</strong>
+          <button onClick={() => cambiarMes(1)} aria-label="Mes siguiente">→</button>
         </div>
-        <button className="primary big" onClick={asignarAutomaticamente}>Asignar turnos</button>
+      </header>
+
+      <section className="people-panel">
+        {socios.map((s) => (
+          <div className="person" key={s.id} style={{ "--person": s.color }}>
+            <span className="avatar">●</span>
+            <input value={s.nombre} onChange={(e) => cambiarSocio(s.id, "nombre", e.target.value)} />
+            <input type="color" value={s.color} onChange={(e) => cambiarSocio(s.id, "color", e.target.value)} aria-label={`Color de ${s.nombre}`} />
+          </div>
+        ))}
       </section>
 
-      <nav className="tabs" aria-label="Secciones">
-        <button className={paso === "disponibilidad" ? "active" : ""} onClick={() => setPaso("disponibilidad")}>1. Disponibilidad</button>
-        <button className={paso === "preferencias" ? "active" : ""} onClick={() => setPaso("preferencias")}>2. Preferencias</button>
-        <button className={paso === "asignacion" ? "active" : ""} onClick={() => setPaso("asignacion")}>3. Asignación</button>
+      <nav className="stepper">
+        <Step id="disponibilidad" paso={paso} n="1" icon="✅" title="Disponible" onClick={() => setParcial({ paso: "disponibilidad" })} />
+        <Step id="preferencias" paso={paso} n="2" icon="⭐" title="Preferencias" onClick={() => setParcial({ paso: "preferencias" })} />
+        <Step id="asignacion" paso={paso} n="3" icon="⚙️" title="Asignación" onClick={() => setParcial({ paso: "asignacion" })} />
       </nav>
 
-      <div className="notice">{mensaje}</div>
-
-      {paso === "disponibilidad" && (
-        <section className="grid two">
-          {socios.map((socio) => (
-            <article className="card" key={socio.id}>
-              <label className="label">Nombre</label>
-              <input className="name-input" value={socio.nombre} onChange={(e) => actualizarNombre(socio.id, e.target.value)} />
-              <h2>{socio.nombre}</h2>
-              <p className="help">Toca los días en los que puede trabajar.</p>
-              <div className="day-grid">
-                {DIAS.map((dia) => {
-                  const activo = disponibilidad[socio.id]?.[dia.id];
-                  return (
-                    <button key={dia.id} className={`day-pill ${activo ? "yes" : "no"}`} onClick={() => cambiarDisponibilidad(socio.id, dia.id)}>
-                      <strong>{dia.nombre}</strong>
-                      <span>{dia.horas} h</span>
-                      <small>{activo ? "Disponible" : "No puede"}</small>
-                    </button>
-                  );
-                })}
-              </div>
-            </article>
-          ))}
-        </section>
-      )}
-
-      {paso === "preferencias" && (
-        <section className="grid two">
-          {socios.map((socio) => (
-            <article className="card" key={socio.id}>
-              <h2>{socio.nombre}</h2>
-              <p className="help">Opcional: marca días favoritos y días que prefiere evitar.</p>
-              <h3>Prefiere trabajar</h3>
-              <div className="mini-grid">
-                {DIAS.map((dia) => (
-                  <button key={dia.id} className={preferencias[socio.id]?.favoritos?.includes(dia.id) ? "choice on" : "choice"} onClick={() => cambiarPreferencia(socio.id, "favoritos", dia.id)}>{dia.nombre}</button>
-                ))}
-              </div>
-              <h3>Mejor evitar</h3>
-              <div className="mini-grid">
-                {DIAS.map((dia) => (
-                  <button key={dia.id} className={preferencias[socio.id]?.evitar?.includes(dia.id) ? "choice avoid" : "choice"} onClick={() => cambiarPreferencia(socio.id, "evitar", dia.id)}>{dia.nombre}</button>
-                ))}
-              </div>
-              <label className="label">Nota rápida</label>
-              <textarea value={preferencias[socio.id]?.nota || ""} onChange={(e) => cambiarNota(socio.id, e.target.value)} placeholder="Ej.: martes solo por la mañana, exámenes, familia..." />
-            </article>
-          ))}
-        </section>
-      )}
-
-      {paso === "asignacion" && (
-        <section className="card wide">
-          <div className="section-head">
-            <div>
-              <h2>Propuesta de turnos</h2>
-              <p className="help">Lunes, viernes y sábado duran 4 horas. Martes, miércoles y jueves duran 6 horas.</p>
-            </div>
-            <div className="actions">
-              <button className="secondary" onClick={limpiarSemana}>Borrar</button>
-              <button className="primary" onClick={asignarAutomaticamente}>Recalcular</button>
-            </div>
+      <section className="work-card">
+        <div className="action-head">
+          <div>
+            <h2>{paso === "disponibilidad" ? "Marca disponibilidad" : paso === "preferencias" ? "Marca lo que prefiere cada socio" : "Resultado automático"}</h2>
+            <p>{paso === "disponibilidad" ? "Pulsa el nombre del socio en cada turno en el que pueda trabajar." : paso === "preferencias" ? "Solo se puede preferir un turno si antes estaba disponible." : "La app prioriza equilibrio de horas y reparte algunas preferencias."}</p>
           </div>
+          <button className="big-cta" onClick={generarAsignacion}>Asignar</button>
+        </div>
 
-          <div className="schedule">
-            {DIAS.map((dia) => {
-              const asignado = asignaciones[dia.id];
-              return (
-                <div className={`shift-card ${asignado?.alerta ? "warning" : ""}`} key={dia.id}>
-                  <span className="hours">{dia.horas} h</span>
-                  <h3>{dia.nombre}</h3>
-                  <p>{asignado ? asignado.socioNombre : "Sin asignar"}</p>
-                </div>
-              );
-            })}
-          </div>
+        {paso === "asignacion" && <Resumen socios={socios} resumen={resumen} />}
 
-          <div className="summary">
-            {socios.map((s) => (
-              <div className="summary-card" key={s.id}>
-                <span>{s.nombre}</span>
-                <strong>{resumen[s.id] || 0} h</strong>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
+        <Calendar
+          dias={dias}
+          mes={mes.month}
+          socios={socios}
+          paso={paso}
+          disponibilidad={disponibilidad}
+          preferencias={preferencias}
+          asignaciones={asignaciones}
+          onToggleDisponibilidad={(sid, tid) => setParcial({ disponibilidad: toggle(disponibilidad, sid, tid) })}
+          onTogglePreferencia={(sid, tid) => setParcial({ preferencias: toggle(preferencias, sid, tid) })}
+        />
+      </section>
+
+      <footer className="bottom-bar">
+        <span>{toast}</span>
+        <button onClick={limpiar}>Limpiar</button>
+      </footer>
     </main>
   );
 }
 
-function calcularResumen(asignaciones) {
-  return Object.values(asignaciones).reduce((acc, turno) => {
-    if (!turno?.socioId) return acc;
-    acc[turno.socioId] = (acc[turno.socioId] || 0) + turno.horas;
-    return acc;
-  }, {});
+function Step({ id, paso, n, icon, title, onClick }) {
+  return <button className={paso === id ? "step active" : "step"} onClick={onClick}><small>{n}</small><span>{icon}</span><b>{title}</b></button>;
 }
 
-export default App;
+function Calendar(props) {
+  return (
+    <div className="calendar-scroller">
+      <div className="week-row">{DIAS.map((d) => <b key={d}>{d}</b>)}</div>
+      <div className="month-grid">
+        {props.dias.map((fecha) => <Day key={ymd(fecha)} fecha={fecha} {...props} />)}
+      </div>
+    </div>
+  );
+}
+
+function Day({ fecha, mes, socios, paso, disponibilidad, preferencias, asignaciones, onToggleDisponibilidad, onTogglePreferencia }) {
+  const fuera = fecha.getMonth() !== mes;
+  const diaId = ymd(fecha);
+  const turnos = turnosDelDia(fecha);
+  return (
+    <article className={`day ${fuera ? "outside" : ""} ${fecha.getDay() === 0 ? "sunday" : ""}`}>
+      <header><strong>{fecha.getDate()}</strong><span>{DIAS[fecha.getDay()]}</span></header>
+      {turnos.length === 0 ? <div className="closed">Cerrado</div> : turnos.map((turno) => {
+        const id = claveTurno(diaId, turno.key);
+        const socioAsignado = socios.find((s) => s.id === asignaciones[id]);
+        return (
+          <div className={`shift ${turno.key}`} key={id}>
+            <div className="shift-main"><span>{turno.icono}</span><b>{turno.nombre}</b><em>{turno.horas} h</em></div>
+            <small>{turno.rango}</small>
+            {paso !== "asignacion" ? (
+              <div className="person-buttons">
+                {socios.map((s) => {
+                  const selected = paso === "disponibilidad" ? disponibilidad[s.id]?.[id] : preferencias[s.id]?.[id];
+                  const disabled = paso === "preferencias" && !disponibilidad[s.id]?.[id];
+                  return <button key={s.id} disabled={disabled} className={selected ? "picked" : ""} style={selected ? { backgroundColor: s.color, borderColor: s.color } : {}} onClick={() => paso === "disponibilidad" ? onToggleDisponibilidad(s.id, id) : onTogglePreferencia(s.id, id)}>{s.nombre}</button>;
+                })}
+              </div>
+            ) : (
+              <div className="assignment" style={socioAsignado ? { backgroundColor: socioAsignado.color } : {}}>{socioAsignado ? socioAsignado.nombre : "Sin cubrir"}</div>
+            )}
+          </div>
+        );
+      })}
+    </article>
+  );
+}
+
+function calcularResumen(socios, turnos, asignaciones, preferencias) {
+  const r = Object.fromEntries(socios.map((s) => [s.id, { horas: 0, turnos: 0, prefs: 0 }]));
+  for (const t of turnos) {
+    const sid = asignaciones[t.id];
+    if (!r[sid]) continue;
+    r[sid].horas += t.horas;
+    r[sid].turnos += 1;
+    if (preferencias[sid]?.[t.id]) r[sid].prefs += 1;
+  }
+  return r;
+}
+function Resumen({ socios, resumen }) {
+  const diff = Math.abs((resumen[socios[0]?.id]?.horas || 0) - (resumen[socios[1]?.id]?.horas || 0));
+  return <div className="summary">{socios.map((s) => <div className="summary-card" key={s.id} style={{ borderColor: s.color }}><b>{s.nombre}</b><strong>{resumen[s.id]?.horas || 0} h</strong><span>{resumen[s.id]?.turnos || 0} turnos · {resumen[s.id]?.prefs || 0} preferencias</span></div>)}<div className="summary-card fair"><b>Equidad</b><strong>{diff} h</strong><span>diferencia total</span></div></div>;
+}
