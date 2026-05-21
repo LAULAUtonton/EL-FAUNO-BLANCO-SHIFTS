@@ -1,755 +1,186 @@
-import React, { useMemo, useState } from "react";
-import {
-  CalendarDays, CheckCircle2, Clock, ClipboardList,
-  Plus, Trash2, User, BarChart3, Lock, LogOut, CircleHelp, X
-} from "lucide-react";
+import { useState } from 'react'
+import './App.css'
 
-const SOCIO_COLORS = {
-  socio1: "#22d3ee",
-  socio2: "#34d399",
-};
+function App() {
+  const [socios, setSocios] = useState([
+    { id: 1, nombre: 'Socio 1', disponibilidad: 'disponible', horas: 0 },
+    { id: 2, nombre: 'Socio 2', disponibilidad: 'disponible', horas: 0 }
+  ])
 
-const SOCIOS = [
-  { id: "socio1", nombre: "Socio 1", pin: "1234", color: SOCIO_COLORS.socio1 },
-  { id: "socio2", nombre: "Socio 2", pin: "5678", color: SOCIO_COLORS.socio2 },
-];
+  const [turnos, setTurnos] = useState({})
+  const [diaSeleccionado, setDiaSeleccionado] = useState(null)
 
-const HORARIOS_BASE = {
-  1: { label: "Lunes", apertura: "08:30", cierre: "20:30" },
-  2: { label: "Martes", apertura: "08:30", cierre: "20:30" },
-  3: { label: "Miércoles", apertura: "08:30", cierre: "20:30" },
-  4: { label: "Jueves", apertura: "08:30", cierre: "20:30" },
-  5: { label: "Viernes", apertura: "08:30", cierre: "00:00" },
-  6: { label: "Sábado", apertura: "08:30", cierre: "00:00" },
-  0: { label: "Domingo", cerrado: true },
-};
+  const diasSemana = [
+    { nombre: 'Lunes', fecha: '2026-05-18' },
+    { nombre: 'Martes', fecha: '2026-05-19' },
+    { nombre: 'Miércoles', fecha: '2026-05-20' },
+    { nombre: 'Jueves', fecha: '2026-05-21' },
+    { nombre: 'Viernes', fecha: '2026-05-22' },
+    { nombre: 'Sábado', fecha: '2026-05-23' }
+  ]
 
-const TAREAS_BASE = [
-  "Abrir caja",
-  "Revisar cambio",
-  "Reponer neveras",
-  "Reponer golosinas",
-  "Limpiar mostrador",
-  "Revisar caducidades",
-  "Cerrar caja",
-];
+  const tareasDiarias = [
+    'Abrir caja', 'Revisar cambio', 'Reponer neveras', 
+    'Reponer golosinas', 'Limpiar mostrador', 'Revisar caducidades', 'Cerrar caja'
+  ]
 
-const TRAMOS = [
-  {
-    id: "manana",
-    label: "Mañana",
-    active: "bg-amber-500/25 text-amber-200 border-amber-400/50 shadow-sm",
-  },
-  {
-    id: "tarde",
-    label: "Tarde",
-    active: "bg-orange-500/25 text-orange-200 border-orange-400/50 shadow-sm",
-  },
-  {
-    id: "todo",
-    label: "Todo",
-    active: "bg-cyan-500/25 text-cyan-200 border-cyan-400/50 shadow-sm",
-  },
-];
+  const asignarTurno = (dia, socioId) => {
+    const socio = socios.find(s => s.id === socioId)
+    if (socio.disponibilidad !== 'disponible') return
 
-const SOCIO_STYLES = {
-  socio1: {
-    chip: "bg-cyan-500/20 text-cyan-200 border-cyan-400/40",
-    shift: "bg-gradient-to-r from-cyan-500/15 to-blue-500/15 border-cyan-400/30",
-    bar: "from-cyan-400 to-blue-500",
-  },
-  socio2: {
-    chip: "bg-emerald-500/20 text-emerald-200 border-emerald-400/40",
-    shift: "bg-gradient-to-r from-emerald-500/15 to-teal-500/15 border-emerald-400/30",
-    bar: "from-emerald-400 to-teal-500",
-  },
-};
-
-const MIN_HOURS_BASE = 8;
-const APP_NAME = "El Fauno Blanco";
-const MORNING_START_TIME = "08:30";
-const STATUS_STYLES = {
-  asignado: "bg-indigo-500/20 text-indigo-100 border-indigo-300/50",
-  disponible: "bg-emerald-500/20 text-emerald-100 border-emerald-300/50",
-  "no-disponible": "bg-slate-700/50 text-slate-100 border-slate-500/70",
-};
-const STATUS_LABELS = {
-  asignado: "Asignado",
-  disponible: "Disponible",
-  "no-disponible": "No disponible",
-};
-const STATUS_ORDER = ["asignado", "disponible", "no-disponible"];
-
-function todayISO() {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function addDays(dateStr, days) {
-  const d = new Date(dateStr + "T12:00:00");
-  d.setDate(d.getDate() + days);
-  return d.toISOString().slice(0, 10);
-}
-
-function getWeekDates(start = todayISO()) {
-  const d = new Date(start + "T12:00:00");
-  const day = d.getDay();
-  const diff = day === 0 ? -6 : 1 - day;
-  d.setDate(d.getDate() + diff);
-  const monday = d.toISOString().slice(0, 10);
-  return Array.from({ length: 6 }, (_, i) => addDays(monday, i));
-}
-
-function dayName(dateStr) {
-  const d = new Date(dateStr + "T12:00:00");
-  return HORARIOS_BASE[d.getDay()]?.label || "Día";
-}
-
-function toMinutes(t) {
-  const [h, m] = t.split(":").map(Number);
-  return h * 60 + m;
-}
-
-function hoursBetween(start, end) {
-  let a = toMinutes(start);
-  let b = toMinutes(end);
-  if (b <= a) b += 24 * 60;
-  return Math.max(0, (b - a) / 60);
-}
-
-function cls(...v) {
-  return v.filter(Boolean).join(" ");
-}
-
-function hasAvailability(memberAvailability, period = "any") {
-  if (period === "manana") return memberAvailability.manana || memberAvailability.todo;
-  if (period === "tarde") return memberAvailability.tarde || memberAvailability.todo;
-  return memberAvailability.manana || memberAvailability.tarde || memberAvailability.todo;
-}
-
-export default function App() {
-  const [activeUser, setActiveUser] = useState(null);
-  const [loginUser, setLoginUser] = useState("socio1");
-  const [pin, setPin] = useState("");
-  const [weekStart, setWeekStart] = useState(todayISO());
-  const [selectedDate, setSelectedDate] = useState(todayISO());
-  const [availability, setAvailability] = useState({});
-  const [shifts, setShifts] = useState({});
-  const [tasks, setTasks] = useState({});
-  const [newTask, setNewTask] = useState("");
-  const [showGuide, setShowGuide] = useState(true);
-
-  const weekDates = useMemo(() => getWeekDates(weekStart), [weekStart]);
-
-  const stats = useMemo(() => {
-    const result = { socio1: 0, socio2: 0 };
-    Object.values(shifts).flat().forEach((s) => {
-      result[s.socio] += hoursBetween(s.inicio, s.fin);
-    });
-    return result;
-  }, [shifts]);
-
-  const selectedDayInfo =
-    HORARIOS_BASE[new Date(selectedDate + "T12:00:00").getDay()];
-
-  const selectedAvailability = availability[selectedDate] || {};
-  const selectedShifts = shifts[selectedDate] || [];
-
-  const selectedTasks =
-    tasks[selectedDate] ||
-    TAREAS_BASE.map((text, idx) => ({
-      id: `base-${idx}`,
-      text,
-      done: false,
-    }));
-
-  const memberStatuses = useMemo(() => {
-    return Object.fromEntries(
-      SOCIOS.map((member) => {
-        const memberAvailability = selectedAvailability[member.id] || {};
-        const assignedToday = selectedShifts.some((s) => s.socio === member.id);
-        if (assignedToday) return [member.id, "asignado"];
-        if (hasAvailability(memberAvailability)) {
-          return [member.id, "disponible"];
-        }
-        return [member.id, "no-disponible"];
-      })
-    );
-  }, [selectedAvailability, selectedShifts]);
-
-  function isShiftWithinAvailability(shift) {
-    const memberAvailability = selectedAvailability[shift.socio] || {};
-    const period = shift.inicio === MORNING_START_TIME ? "manana" : "tarde";
-    return hasAvailability(memberAvailability, period);
-  }
-
-  function login() {
-    const user = SOCIOS.find((s) => s.id === loginUser && s.pin === pin);
-    if (user) {
-      setActiveUser(user);
-      setPin("");
-    } else {
-      alert("Contraseña incorrecta. Demo: Socio 1 = 1234 / Socio 2 = 5678");
-    }
-  }
-
-  function toggleAvailability(socioId, tramo) {
-    setAvailability((prev) => ({
-      ...prev,
-      [selectedDate]: {
-        ...(prev[selectedDate] || {}),
-        [socioId]: {
-          ...((prev[selectedDate] || {})[socioId] || {}),
-          [tramo]: !((prev[selectedDate] || {})[socioId] || {})[tramo],
-        },
-      },
-    }));
-  }
-
-  function addShift(socio, inicio, fin) {
-    setShifts((prev) => ({
-      ...prev,
-      [selectedDate]: [
-        ...(prev[selectedDate] || []),
-        { id: crypto.randomUUID(), socio, inicio, fin },
-      ],
-    }));
-  }
-
-  function deleteShift(id) {
-    setShifts((prev) => ({
-      ...prev,
-      [selectedDate]: (prev[selectedDate] || []).filter((s) => s.id !== id),
-    }));
-  }
-
-  function toggleTask(id) {
-    setTasks((prev) => ({
-      ...prev,
-      [selectedDate]: selectedTasks.map((t) =>
-        t.id === id ? { ...t, done: !t.done } : t
-      ),
-    }));
-  }
-
-  function addTask() {
-    if (!newTask.trim()) return;
-    setTasks((prev) => ({
-      ...prev,
-      [selectedDate]: [
-        ...selectedTasks,
-        { id: crypto.randomUUID(), text: newTask.trim(), done: false },
-      ],
-    }));
-    setNewTask("");
-  }
-
-  function autoSuggest() {
-    if (!selectedDayInfo || selectedDayInfo.cerrado) return;
-
-    const morning =
-      selectedDayInfo.cierre === "00:00"
-        ? [MORNING_START_TIME, "16:30"]
-        : [MORNING_START_TIME, "14:30"];
-
-    const evening =
-      selectedDayInfo.cierre === "00:00"
-        ? ["16:30", "00:00"]
-        : ["14:30", "20:30"];
-
-    const a1 = selectedAvailability.socio1 || {};
-    const a2 = selectedAvailability.socio2 || {};
-
-    let first = stats.socio1 <= stats.socio2 ? "socio1" : "socio2";
-    let second = first === "socio1" ? "socio2" : "socio1";
-
-    const newShifts = [];
-
-    if (
-      (selectedAvailability[first]?.manana || selectedAvailability[first]?.todo) &&
-      (selectedAvailability[second]?.tarde || selectedAvailability[second]?.todo)
-    ) {
-      newShifts.push({
-        id: crypto.randomUUID(),
-        socio: first,
-        inicio: morning[0],
-        fin: morning[1],
-      });
-      newShifts.push({
-        id: crypto.randomUUID(),
-        socio: second,
-        inicio: evening[0],
-        fin: evening[1],
-      });
-    } else if ((a1.manana || a1.todo) && (a2.tarde || a2.todo)) {
-      newShifts.push({
-        id: crypto.randomUUID(),
-        socio: "socio1",
-        inicio: morning[0],
-        fin: morning[1],
-      });
-      newShifts.push({
-        id: crypto.randomUUID(),
-        socio: "socio2",
-        inicio: evening[0],
-        fin: evening[1],
-      });
-    } else if ((a2.manana || a2.todo) && (a1.tarde || a1.todo)) {
-      newShifts.push({
-        id: crypto.randomUUID(),
-        socio: "socio2",
-        inicio: morning[0],
-        fin: morning[1],
-      });
-      newShifts.push({
-        id: crypto.randomUUID(),
-        socio: "socio1",
-        inicio: evening[0],
-        fin: evening[1],
-      });
-    } else {
-      alert("No hay disponibilidad suficiente marcada.");
-      return;
+    const nuevoTurno = {
+      socioId,
+      socioNombre: socio.nombre,
+      dia,
+      horas: 4 // horas por turno estándar
     }
 
-    setShifts((prev) => ({ ...prev, [selectedDate]: newShifts }));
+    setTurnos(prev => {
+      const existing = prev[dia] || []
+      // Si ya tiene turno ese socio ese día, no duplicar
+      if (existing.some(t => t.socioId === socioId)) return prev
+      return { ...prev, [dia]: [...existing, nuevoTurno] }
+    })
+
+    // Actualizar horas del socio
+    setSocios(prev => prev.map(s => 
+      s.id === socioId ? { ...s, horas: s.horas + 4 } : s
+    ))
   }
 
-  if (!activeUser) {
-    return (
-      <div className="min-h-screen login-bg text-slate-100 flex items-center justify-center p-4">
-        <div className="w-full max-w-md login-card rounded-3xl p-6 shadow-2xl">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="bg-gradient-to-br from-cyan-300 to-emerald-300 text-slate-900 rounded-2xl p-3 shadow-lg">
-              <Lock />
-            </div>
-            <div>
-              <h1 className="text-3xl font-black tracking-tight text-slate-100">
-                {APP_NAME}
-              </h1>
-              <p className="text-slate-300 font-medium">Turnos y tareas</p>
-            </div>
-          </div>
-
-          <label className="text-sm text-slate-300 font-semibold">Usuario</label>
-          <select
-            className="w-full mt-1 mb-4 p-3 rounded-xl bg-slate-900/70 border border-slate-600 text-slate-100 focus-ring"
-            value={loginUser}
-            onChange={(e) => setLoginUser(e.target.value)}
-          >
-            {SOCIOS.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.nombre}
-              </option>
-            ))}
-          </select>
-
-          <label className="text-sm text-slate-300 font-semibold">Contraseña</label>
-          <input
-            className="w-full mt-1 mb-4 p-3 rounded-xl bg-slate-900/70 border border-slate-600 text-slate-100 placeholder-slate-400 focus-ring"
-            type="password"
-            value={pin}
-            onChange={(e) => setPin(e.target.value)}
-            placeholder="PIN"
-          />
-
-          <button
-            onClick={login}
-            className="w-full bg-gradient-to-r from-cyan-500 via-sky-500 to-emerald-500 text-white font-black py-3 rounded-xl btn-lift"
-          >
-            Entrar
-          </button>
-
-          <p className="text-xs text-slate-400 mt-4 font-medium">
-            Demo: Socio 1 = 1234 · Socio 2 = 5678
-          </p>
-        </div>
-      </div>
-    );
+  const getHorasPorDia = (dia) => {
+    const turnosDia = turnos[dia] || []
+    return turnosDia.reduce((total, t) => total + t.horas, 0)
   }
 
-  const maxHours = Math.max(
-    MIN_HOURS_BASE,
-    ...SOCIOS.map((s) => stats[s.id] || 0)
-  );
+  const getSocioRecomendado = () => {
+    return socios.reduce((min, s) => s.horas < min.horas ? s : min, socios[0])
+  }
+
+  const cambiarDisponibilidad = (socioId, estado) => {
+    setSocios(prev => prev.map(s => 
+      s.id === socioId ? { ...s, disponibilidad: estado } : s
+    ))
+  }
 
   return (
-    <div className="min-h-screen app-bg text-slate-100 pb-24">
-      <header className="sticky top-0 z-20 app-header p-4 shadow-xl">
-        <div className="max-w-6xl mx-auto flex items-center justify-between gap-3 text-white">
-          <div>
-            <h1 className="text-xl md:text-2xl font-black tracking-tight">
-              {APP_NAME}
-            </h1>
-            <p className="text-sm text-cyan-200">
-              {activeUser.nombre} · planificación flexible
-            </p>
-          </div>
-          <button
-            onClick={() => setActiveUser(null)}
-            className="bg-white/10 hover:bg-white/20 p-3 rounded-2xl transition border border-white/15"
-            aria-label="Cerrar sesión"
-          >
-            <LogOut size={20} />
-          </button>
-        </div>
+    <div className="app">
+      <header className="header">
+        <h1>🦌 El Fauno Blanco</h1>
+        <p className="subtitle">Planificación flexible de turnos</p>
       </header>
 
-      <main className="max-w-6xl mx-auto p-4 grid lg:grid-cols-3 gap-4">
-        {showGuide && (
-          <section className="lg:col-span-3 guide-card rounded-3xl p-4 border">
-            <div className="flex items-start justify-between gap-3 mb-3">
-              <div>
-                <h2 className="font-black text-lg flex items-center gap-2">
-                  <CircleHelp size={20} /> Guía rápida
-                </h2>
-                <p className="text-sm text-slate-200 mt-1">
-                  1) Marca disponibilidad · 2) Asigna turnos · 3) Revisa equilibrio y tareas.
-                </p>
-              </div>
-              <button
-                onClick={() => setShowGuide(false)}
-                className="p-2 rounded-xl hover:bg-white/10 border border-white/20 transition"
-                aria-label="Ocultar guía"
-                title="Ocultar ayuda"
-              >
-                <X size={18} />
-              </button>
-            </div>
-            <div className="grid md:grid-cols-2 gap-3 text-sm">
-              <div className="bg-slate-900/55 rounded-2xl border border-slate-600 p-3">
-                <p className="font-bold mb-2">Estado de socios</p>
-                <div className="flex flex-wrap gap-2">
-                  {STATUS_ORDER.map((status) => (
-                    <span
-                      key={status}
-                      role="status"
-                      aria-label={`Estado ${STATUS_LABELS[status]}`}
-                      className={cls("px-2 py-1 rounded-full border text-xs font-bold", STATUS_STYLES[status])}
-                    >
-                      {STATUS_LABELS[status]}
-                    </span>
-                  ))}
-                </div>
-              </div>
-              <div className="bg-slate-900/55 rounded-2xl border border-slate-600 p-3">
-                <p className="font-bold mb-2">Colores por socio</p>
-                <div className="flex flex-wrap gap-2">
-                  {SOCIOS.map((s) => (
-                    <span key={s.id} className="inline-flex items-center gap-2 px-2 py-1 rounded-full border border-slate-500 text-xs font-bold">
-                      <span
-                        className="h-2.5 w-2.5 rounded-full"
-                        style={{ backgroundColor: s.color }}
-                        role="img"
-                        aria-label={`Color asignado para ${s.nombre}`}
-                      />
-                      {s.nombre}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </section>
-        )}
-        <section className="lg:col-span-2 app-card rounded-3xl p-4">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-black flex items-center gap-2 text-lg">
-              <CalendarDays /> Calendario semanal
-            </h2>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setWeekStart(addDays(weekDates[0], -7))}
-                className="px-3 py-2 bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-200 rounded-xl transition border border-cyan-400/25"
-              >
-                ←
-              </button>
-              <button
-                onClick={() => setWeekStart(addDays(weekDates[0], 7))}
-                className="px-3 py-2 bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-200 rounded-xl transition border border-cyan-400/25"
-              >
-                →
-              </button>
-            </div>
-          </div>
+      {/* Stepper visual de 3 pasos */}
+      <div className="stepper">
+        <div className="step active">1. Marca disponibilidad</div>
+        <div className="step">2. Asigna turnos</div>
+        <div className="step">3. Revisa equilibrio</div>
+      </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            {weekDates.map((date) => {
-              const dShifts = shifts[date] || [];
-              const total = dShifts.reduce(
-                (sum, s) => sum + hoursBetween(s.inicio, s.fin),
-                0
-              );
-
-              return (
-                <button
-                  key={date}
-                  onClick={() => setSelectedDate(date)}
-                  className={cls(
-                    "text-left rounded-2xl p-4 border-2 card-lift transition",
-                    selectedDate === date
-                      ? "border-cyan-400/70 bg-gradient-to-br from-cyan-500/20 via-blue-500/15 to-emerald-500/20 shadow-lg"
-                      : "border-slate-700 bg-slate-900/65 hover:border-cyan-400/50 hover:shadow-md"
-                  )}
-                >
-                  <div className="font-black text-slate-100">{dayName(date)}</div>
-                  <div className="text-sm text-slate-400">{date}</div>
-                  <div className="mt-3 text-sm font-semibold text-slate-300">
-                    {dShifts.length} turnos · {total.toFixed(1)} h
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </section>
-
-         <section className="app-card rounded-3xl p-4">
-           <h2 className="font-black flex items-center gap-2 mb-4">
-             <BarChart3 /> Equilibrio semanal
-           </h2>
-
-          {SOCIOS.map((s) => (
-            <div key={s.id} className="mb-4 p-3 rounded-2xl bg-slate-900/65 border border-slate-700">
-              <div className="flex justify-between text-sm font-bold mb-1">
-                <span className="inline-flex items-center gap-2">
-                  <span
-                    className="h-2.5 w-2.5 rounded-full"
-                    style={{ backgroundColor: s.color }}
-                    role="img"
-                    aria-label={`Color asignado para ${s.nombre}`}
-                  />
-                  {s.nombre}
-                </span>
-                <span>{stats[s.id].toFixed(1)} h</span>
-              </div>
-              <div className="h-4 bg-slate-800 rounded-full overflow-hidden border border-slate-700">
-                <div
-                  className={cls(
-                    "h-full bg-gradient-to-r",
-                    SOCIO_STYLES[s.id].bar
-                  )}
-                  style={{
-                    width: `${
-                      maxHours > 0
-                        ? Math.min(100, (stats[s.id] / maxHours) * 100)
-                        : 0
-                    }%`,
-                  }}
-                />
-              </div>
-            </div>
-          ))}
-
-          <p className="text-sm text-slate-400">
-            La app prioriza al socio con menos horas al proponer turnos.
-          </p>
-        </section>
-
-        <section className="lg:col-span-2 app-card rounded-3xl p-4">
-          <div className="flex items-center justify-between gap-3 mb-4">
-            <div>
-              <h2 className="font-black text-lg">
-                {dayName(selectedDate)} · {selectedDate}
-              </h2>
-              <p className="text-sm text-slate-400">
-                Horario: {selectedDayInfo?.apertura} - {selectedDayInfo?.cierre}
-              </p>
-            </div>
-
-            <button
-              onClick={autoSuggest}
-              className="bg-gradient-to-r from-cyan-500 to-emerald-500 text-white px-4 py-3 rounded-2xl font-bold btn-lift"
-            >
-              Proponer turnos
-            </button>
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-4 mb-4">
-            {SOCIOS.map((s) => (
-              <div
-                key={s.id}
-                className="bg-gradient-to-br from-slate-900/80 via-slate-900/70 to-cyan-900/20 rounded-2xl p-4 border border-slate-700 shadow-sm"
-              >
-                <h3 className="font-black flex items-center gap-2 mb-3">
-                  <User size={18} />{" "}
-                  <span className="inline-flex items-center gap-2">
-                    <span
-                      className="h-2.5 w-2.5 rounded-full"
-                      style={{ backgroundColor: s.color }}
-                      role="img"
-                      aria-label={`Color asignado para ${s.nombre}`}
-                    />
-                    {s.nombre}
+      <div className="main-container">
+        {/* Panel izquierdo: Socios y disponibilidad */}
+        <div className="left-panel">
+          <div className="card">
+            <h2>Estado de socios</h2>
+            {socios.map(socio => (
+              <div key={socio.id} className="socio-card">
+                <div className="socio-header">
+                  <span className={`status-badge ${socio.disponibilidad}`}>
+                    {socio.disponibilidad === 'disponible' ? '✅' : '⛔'} {socio.disponibilidad}
                   </span>
-                  <span
-                    role="status"
-                    aria-label={`Estado de ${s.nombre}: ${STATUS_LABELS[memberStatuses[s.id]]}`}
-                    className={cls(
-                      "ml-auto px-2 py-0.5 rounded-full text-xs font-bold border",
-                      STATUS_STYLES[memberStatuses[s.id]]
-                    )}
-                  >
-                    {STATUS_LABELS[memberStatuses[s.id]]}
-                  </span>
-                </h3>
-
-                <div className="grid grid-cols-3 gap-2">
-                  {TRAMOS.map((tramo) => (
-                    <button
-                      key={tramo.id}
-                      onClick={() => toggleAvailability(s.id, tramo.id)}
-                      className={cls(
-                        "py-2 rounded-xl text-sm font-bold border transition",
-                        selectedAvailability[s.id]?.[tramo.id]
-                          ? tramo.active
-                          : "bg-slate-900/70 border-slate-700 text-slate-300 hover:border-cyan-400/50 hover:text-cyan-200"
-                      )}
-                      title={`Marcar ${tramo.label.toLowerCase()} para ${s.nombre}`}
-                    >
-                      {tramo.label}
-                    </button>
-                  ))}
+                  <strong>{socio.nombre}</strong>
+                  <span className="horas">{socio.horas}h</span>
                 </div>
-
-                <div className="grid grid-cols-2 gap-2 mt-3">
-                  <button
-                    onClick={() =>
-                      addShift(
-                        s.id,
-                        MORNING_START_TIME,
-                        selectedDayInfo?.cierre === "00:00" ? "16:30" : "14:30"
-                      )
-                    }
-                    className="bg-slate-900/70 border border-slate-700 rounded-xl p-2 text-sm hover:border-amber-400/60 hover:bg-amber-500/15 transition"
-                    title={`Asignar turno de mañana a ${s.nombre}`}
-                  >
-                    + Mañana
-                  </button>
-
-                  <button
-                    onClick={() =>
-                      addShift(
-                        s.id,
-                        selectedDayInfo?.cierre === "00:00" ? "16:30" : "14:30",
-                        selectedDayInfo?.cierre || "20:30"
-                      )
-                    }
-                    className="bg-slate-900/70 border border-slate-700 rounded-xl p-2 text-sm hover:border-orange-400/60 hover:bg-orange-500/15 transition"
-                    title={`Asignar turno de tarde a ${s.nombre}`}
-                  >
-                    + Tarde
-                  </button>
+                <div className="dispo-buttons">
+                  <button onClick={() => cambiarDisponibilidad(socio.id, 'disponible')} className="btn-dispo">Disponible</button>
+                  <button onClick={() => cambiarDisponibilidad(socio.id, 'no-disponible')} className="btn-dispo">No disponible</button>
                 </div>
               </div>
             ))}
           </div>
 
-          <h3 className="font-black flex items-center gap-2 mb-3">
-            <Clock /> Turnos asignados
-          </h3>
-
-          <div className="space-y-2">
-            {selectedShifts.length === 0 && (
-              <p className="text-slate-400 bg-slate-900/65 p-4 rounded-2xl border border-dashed border-slate-700">
-                Todavía no hay turnos asignados para este día.
-              </p>
-            )}
-
-            {selectedShifts.map((s) => {
-              const socio = SOCIOS.find((x) => x.id === s.socio);
-              const availableForShift = isShiftWithinAvailability(s);
-              return (
-                <div
-                  key={s.id}
-                  className={cls(
-                    "flex items-center justify-between rounded-2xl p-3 border shadow-sm",
-                    availableForShift
-                      ? SOCIO_STYLES[s.socio]?.shift
-                      : "bg-rose-500/15 border-rose-300/45"
-                  )}
-                >
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <b className="inline-flex items-center gap-2">
-                        <span
-                          className="h-2.5 w-2.5 rounded-full"
-                          style={{ backgroundColor: socio?.color }}
-                          role="img"
-                          aria-label={`Color asignado para ${socio ? socio.nombre : s.socio}`}
-                        />
-                        {socio?.nombre}
-                      </b>
-                      <span
-                        className={cls(
-                          "px-2 py-0.5 rounded-full text-xs font-bold border",
-                          SOCIO_STYLES[s.socio]?.chip
-                        )}
-                      >
-                        {hoursBetween(s.inicio, s.fin).toFixed(1)} h
-                      </span>
-                    </div>
-                    <div className="text-sm text-slate-300">
-                      {s.inicio} - {s.fin} ·{" "}
-                      turno asignado
-                    </div>
-                    {!availableForShift && (
-                      <div className="text-xs text-rose-200 mt-1 font-semibold">
-                        Fuera de disponibilidad marcada
-                      </div>
-                    )}
+          <div className="card">
+            <h2>Equilibrio semanal</h2>
+            <div className="balance-bars">
+              {socios.map(socio => (
+                <div key={socio.id} className="balance-item">
+                  <span>{socio.nombre}</span>
+                  <div className="bar-bg">
+                    <div className="bar-fill" style={{ width: `${(socio.horas / 40) * 100}%` }}></div>
                   </div>
-                  <button
-                    onClick={() => deleteShift(s.id)}
-                    className="text-rose-300 p-2 rounded-xl hover:bg-rose-500/15 transition"
-                  >
-                    <Trash2 size={18} />
-                  </button>
+                  <span>{socio.horas}h</span>
                 </div>
-              );
+              ))}
+            </div>
+            <div className="recomendacion">
+              🎯 Recomendado: {getSocioRecomendado().nombre} ({getSocioRecomendado().horas}h)
+            </div>
+          </div>
+        </div>
+
+        {/* Panel derecho: Calendario */}
+        <div className="right-panel">
+          <div className="calendario-grid">
+            {diasSemana.map(dia => {
+              const horasDia = getHorasPorDia(dia.fecha)
+              const turnosDia = turnos[dia.fecha] || []
+              const recomendado = getSocioRecomendado()
+              
+              return (
+                <div key={dia.fecha} className="day-card" onClick={() => setDiaSeleccionado(dia.fecha)}>
+                  <h3>{dia.nombre}</h3>
+                  <div className="fecha">{dia.fecha}</div>
+                  <div className="turnos-info">
+                    <span className="turnos-count">{turnosDia.length} turnos</span>
+                    <span className="horas-count">{horasDia}h</span>
+                  </div>
+                  <div className="asignar-turnos">
+                    {socios.map(socio => {
+                      const yaAsignado = turnosDia.some(t => t.socioId === socio.id)
+                      return (
+                        <button
+                          key={socio.id}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            asignarTurno(dia.fecha, socio.id)
+                          }}
+                          disabled={yaAsignado || socio.disponibilidad !== 'disponible'}
+                          className={`btn-asignar ${yaAsignado ? 'asignado' : ''}`}
+                        >
+                          {socio.nombre}
+                        </button>
+                      )
+                    })}
+                  </div>
+                  {recomendado && turnosDia.length === 0 && (
+                    <div className="recomendacion-dia">✨ Recomendado: {recomendado.nombre}</div>
+                  )}
+                </div>
+              )
             })}
           </div>
-        </section>
+        </div>
+      </div>
 
-        <section className="app-card rounded-3xl p-4">
-          <h2 className="font-black flex items-center gap-2 mb-4">
-            <ClipboardList /> Tareas del día
-          </h2>
-
-          <div className="space-y-2 mb-4">
-            {selectedTasks.map((t) => (
-              <button
-                key={t.id}
-                onClick={() => toggleTask(t.id)}
-                className={cls(
-                  "w-full flex items-center gap-2 text-left p-3 rounded-2xl transition",
-                  t.done
-                    ? "bg-emerald-500/15 text-emerald-200 border border-emerald-400/40"
-                    : "bg-slate-900/65 border border-slate-700 hover:border-cyan-400/40 hover:bg-cyan-500/10"
-                )}
-              >
-                <CheckCircle2
-                  size={20}
-                  className={t.done ? "text-emerald-300" : "text-slate-500"}
-                />
-                <span className={t.done ? "line-through" : ""}>{t.text}</span>
-              </button>
-            ))}
+      {/* Modal de tareas del día (al hacer clic en un día) */}
+      {diaSeleccionado && (
+        <div className="modal" onClick={() => setDiaSeleccionado(null)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <h2>Tareas para {diaSeleccionado}</h2>
+            <ul className="tareas-lista">
+              {tareasDiarias.map((tarea, i) => (
+                <li key={i}>
+                  <input type="checkbox" id={`tarea-${i}`} />
+                  <label htmlFor={`tarea-${i}`}>{tarea}</label>
+                </li>
+              ))}
+            </ul>
+            <button onClick={() => setDiaSeleccionado(null)} className="btn-cerrar">Cerrar</button>
           </div>
-
-          <div className="flex gap-2">
-            <input
-              value={newTask}
-              onChange={(e) => setNewTask(e.target.value)}
-              placeholder="Nueva tarea"
-              className="min-w-0 flex-1 p-3 rounded-xl bg-slate-900/70 border border-slate-700 text-slate-100 placeholder-slate-500 focus-ring"
-            />
-            <button
-              onClick={addTask}
-              className="bg-gradient-to-r from-rose-500 to-orange-500 text-white p-3 rounded-xl btn-lift"
-            >
-              <Plus />
-            </button>
-          </div>
-        </section>
-      </main>
+        </div>
+      )}
     </div>
-  );
+  )
 }
+
+export default App
