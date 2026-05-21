@@ -1,12 +1,17 @@
 import React, { useMemo, useState } from "react";
 import {
   CalendarDays, CheckCircle2, Clock, ClipboardList,
-  Plus, Trash2, User, BarChart3, Lock, LogOut
+  Plus, Trash2, User, BarChart3, Lock, LogOut, CircleHelp, X
 } from "lucide-react";
 
+const SOCIO_COLORS = {
+  socio1: "#22d3ee",
+  socio2: "#34d399",
+};
+
 const SOCIOS = [
-  { id: "socio1", nombre: "Socio 1", pin: "1234" },
-  { id: "socio2", nombre: "Socio 2", pin: "5678" },
+  { id: "socio1", nombre: "Socio 1", pin: "1234", color: SOCIO_COLORS.socio1 },
+  { id: "socio2", nombre: "Socio 2", pin: "5678", color: SOCIO_COLORS.socio2 },
 ];
 
 const HORARIOS_BASE = {
@@ -62,6 +67,18 @@ const SOCIO_STYLES = {
 
 const MIN_HOURS_BASE = 8;
 const APP_NAME = "El Fauno Blanco";
+const MORNING_START_TIME = "08:30";
+const STATUS_STYLES = {
+  asignado: "bg-indigo-500/20 text-indigo-100 border-indigo-300/50",
+  disponible: "bg-emerald-500/20 text-emerald-100 border-emerald-300/50",
+  "no-disponible": "bg-slate-700/50 text-slate-100 border-slate-500/70",
+};
+const STATUS_LABELS = {
+  asignado: "Asignado",
+  disponible: "Disponible",
+  "no-disponible": "No disponible",
+};
+const STATUS_ORDER = ["asignado", "disponible", "no-disponible"];
 
 function todayISO() {
   return new Date().toISOString().slice(0, 10);
@@ -103,6 +120,12 @@ function cls(...v) {
   return v.filter(Boolean).join(" ");
 }
 
+function hasAvailability(memberAvailability, period = "any") {
+  if (period === "manana") return memberAvailability.manana || memberAvailability.todo;
+  if (period === "tarde") return memberAvailability.tarde || memberAvailability.todo;
+  return memberAvailability.manana || memberAvailability.tarde || memberAvailability.todo;
+}
+
 export default function App() {
   const [activeUser, setActiveUser] = useState(null);
   const [loginUser, setLoginUser] = useState("socio1");
@@ -113,6 +136,7 @@ export default function App() {
   const [shifts, setShifts] = useState({});
   const [tasks, setTasks] = useState({});
   const [newTask, setNewTask] = useState("");
+  const [showGuide, setShowGuide] = useState(true);
 
   const weekDates = useMemo(() => getWeekDates(weekStart), [weekStart]);
 
@@ -137,6 +161,26 @@ export default function App() {
       text,
       done: false,
     }));
+
+  const memberStatuses = useMemo(() => {
+    return Object.fromEntries(
+      SOCIOS.map((member) => {
+        const memberAvailability = selectedAvailability[member.id] || {};
+        const assignedToday = selectedShifts.some((s) => s.socio === member.id);
+        if (assignedToday) return [member.id, "asignado"];
+        if (hasAvailability(memberAvailability)) {
+          return [member.id, "disponible"];
+        }
+        return [member.id, "no-disponible"];
+      })
+    );
+  }, [selectedAvailability, selectedShifts]);
+
+  function isShiftWithinAvailability(shift) {
+    const memberAvailability = selectedAvailability[shift.socio] || {};
+    const period = shift.inicio === MORNING_START_TIME ? "manana" : "tarde";
+    return hasAvailability(memberAvailability, period);
+  }
 
   function login() {
     const user = SOCIOS.find((s) => s.id === loginUser && s.pin === pin);
@@ -204,8 +248,8 @@ export default function App() {
 
     const morning =
       selectedDayInfo.cierre === "00:00"
-        ? ["08:30", "16:30"]
-        : ["08:30", "14:30"];
+        ? [MORNING_START_TIME, "16:30"]
+        : [MORNING_START_TIME, "14:30"];
 
     const evening =
       selectedDayInfo.cierre === "00:00"
@@ -351,6 +395,61 @@ export default function App() {
       </header>
 
       <main className="max-w-6xl mx-auto p-4 grid lg:grid-cols-3 gap-4">
+        {showGuide && (
+          <section className="lg:col-span-3 guide-card rounded-3xl p-4 border">
+            <div className="flex items-start justify-between gap-3 mb-3">
+              <div>
+                <h2 className="font-black text-lg flex items-center gap-2">
+                  <CircleHelp size={20} /> Guía rápida
+                </h2>
+                <p className="text-sm text-slate-200 mt-1">
+                  1) Marca disponibilidad · 2) Asigna turnos · 3) Revisa equilibrio y tareas.
+                </p>
+              </div>
+              <button
+                onClick={() => setShowGuide(false)}
+                className="p-2 rounded-xl hover:bg-white/10 border border-white/20 transition"
+                aria-label="Ocultar guía"
+                title="Ocultar ayuda"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div className="grid md:grid-cols-2 gap-3 text-sm">
+              <div className="bg-slate-900/55 rounded-2xl border border-slate-600 p-3">
+                <p className="font-bold mb-2">Estado de socios</p>
+                <div className="flex flex-wrap gap-2">
+                  {STATUS_ORDER.map((status) => (
+                    <span
+                      key={status}
+                      role="status"
+                      aria-label={`Estado ${STATUS_LABELS[status]}`}
+                      className={cls("px-2 py-1 rounded-full border text-xs font-bold", STATUS_STYLES[status])}
+                    >
+                      {STATUS_LABELS[status]}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              <div className="bg-slate-900/55 rounded-2xl border border-slate-600 p-3">
+                <p className="font-bold mb-2">Colores por socio</p>
+                <div className="flex flex-wrap gap-2">
+                  {SOCIOS.map((s) => (
+                    <span key={s.id} className="inline-flex items-center gap-2 px-2 py-1 rounded-full border border-slate-500 text-xs font-bold">
+                      <span
+                        className="h-2.5 w-2.5 rounded-full"
+                        style={{ backgroundColor: s.color }}
+                        role="img"
+                        aria-label={`Color asignado para ${s.nombre}`}
+                      />
+                      {s.nombre}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
         <section className="lg:col-span-2 app-card rounded-3xl p-4">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-black flex items-center gap-2 text-lg">
@@ -402,15 +501,23 @@ export default function App() {
           </div>
         </section>
 
-        <section className="app-card rounded-3xl p-4">
-          <h2 className="font-black flex items-center gap-2 mb-4">
-            <BarChart3 /> Equilibrio semanal
-          </h2>
+         <section className="app-card rounded-3xl p-4">
+           <h2 className="font-black flex items-center gap-2 mb-4">
+             <BarChart3 /> Equilibrio semanal
+           </h2>
 
           {SOCIOS.map((s) => (
             <div key={s.id} className="mb-4 p-3 rounded-2xl bg-slate-900/65 border border-slate-700">
               <div className="flex justify-between text-sm font-bold mb-1">
-                <span>{s.nombre}</span>
+                <span className="inline-flex items-center gap-2">
+                  <span
+                    className="h-2.5 w-2.5 rounded-full"
+                    style={{ backgroundColor: s.color }}
+                    role="img"
+                    aria-label={`Color asignado para ${s.nombre}`}
+                  />
+                  {s.nombre}
+                </span>
                 <span>{stats[s.id].toFixed(1)} h</span>
               </div>
               <div className="h-4 bg-slate-800 rounded-full overflow-hidden border border-slate-700">
@@ -462,7 +569,26 @@ export default function App() {
                 className="bg-gradient-to-br from-slate-900/80 via-slate-900/70 to-cyan-900/20 rounded-2xl p-4 border border-slate-700 shadow-sm"
               >
                 <h3 className="font-black flex items-center gap-2 mb-3">
-                  <User size={18} /> {s.nombre}
+                  <User size={18} />{" "}
+                  <span className="inline-flex items-center gap-2">
+                    <span
+                      className="h-2.5 w-2.5 rounded-full"
+                      style={{ backgroundColor: s.color }}
+                      role="img"
+                      aria-label={`Color asignado para ${s.nombre}`}
+                    />
+                    {s.nombre}
+                  </span>
+                  <span
+                    role="status"
+                    aria-label={`Estado de ${s.nombre}: ${STATUS_LABELS[memberStatuses[s.id]]}`}
+                    className={cls(
+                      "ml-auto px-2 py-0.5 rounded-full text-xs font-bold border",
+                      STATUS_STYLES[memberStatuses[s.id]]
+                    )}
+                  >
+                    {STATUS_LABELS[memberStatuses[s.id]]}
+                  </span>
                 </h3>
 
                 <div className="grid grid-cols-3 gap-2">
@@ -476,6 +602,7 @@ export default function App() {
                           ? tramo.active
                           : "bg-slate-900/70 border-slate-700 text-slate-300 hover:border-cyan-400/50 hover:text-cyan-200"
                       )}
+                      title={`Marcar ${tramo.label.toLowerCase()} para ${s.nombre}`}
                     >
                       {tramo.label}
                     </button>
@@ -487,11 +614,12 @@ export default function App() {
                     onClick={() =>
                       addShift(
                         s.id,
-                        "08:30",
+                        MORNING_START_TIME,
                         selectedDayInfo?.cierre === "00:00" ? "16:30" : "14:30"
                       )
                     }
                     className="bg-slate-900/70 border border-slate-700 rounded-xl p-2 text-sm hover:border-amber-400/60 hover:bg-amber-500/15 transition"
+                    title={`Asignar turno de mañana a ${s.nombre}`}
                   >
                     + Mañana
                   </button>
@@ -505,6 +633,7 @@ export default function App() {
                       )
                     }
                     className="bg-slate-900/70 border border-slate-700 rounded-xl p-2 text-sm hover:border-orange-400/60 hover:bg-orange-500/15 transition"
+                    title={`Asignar turno de tarde a ${s.nombre}`}
                   >
                     + Tarde
                   </button>
@@ -526,17 +655,28 @@ export default function App() {
 
             {selectedShifts.map((s) => {
               const socio = SOCIOS.find((x) => x.id === s.socio);
+              const availableForShift = isShiftWithinAvailability(s);
               return (
                 <div
                   key={s.id}
                   className={cls(
                     "flex items-center justify-between rounded-2xl p-3 border shadow-sm",
-                    SOCIO_STYLES[s.socio]?.shift
+                    availableForShift
+                      ? SOCIO_STYLES[s.socio]?.shift
+                      : "bg-rose-500/15 border-rose-300/45"
                   )}
                 >
                   <div>
                     <div className="flex items-center gap-2 mb-1">
-                      <b>{socio?.nombre}</b>
+                      <b className="inline-flex items-center gap-2">
+                        <span
+                          className="h-2.5 w-2.5 rounded-full"
+                          style={{ backgroundColor: socio?.color }}
+                          role="img"
+                          aria-label={`Color asignado para ${socio ? socio.nombre : s.socio}`}
+                        />
+                        {socio?.nombre}
+                      </b>
                       <span
                         className={cls(
                           "px-2 py-0.5 rounded-full text-xs font-bold border",
@@ -550,6 +690,11 @@ export default function App() {
                       {s.inicio} - {s.fin} ·{" "}
                       turno asignado
                     </div>
+                    {!availableForShift && (
+                      <div className="text-xs text-rose-200 mt-1 font-semibold">
+                        Fuera de disponibilidad marcada
+                      </div>
+                    )}
                   </div>
                   <button
                     onClick={() => deleteShift(s.id)}
